@@ -1,0 +1,158 @@
+.game-grid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 20px auto;
+  max-width: 800px;
+  background-color: #f5f5f5;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  overflow-x: auto;
+}
+
+.grid-row {
+  display: flex;
+  justify-content: center;
+}
+
+.grid-cell-position {
+  width: 34px;
+  height: 34px;
+  margin: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.grid-cell-position.empty-cell {
+  background-color: #e0e0e0;
+  border-radius: 4px;
+}
+
+.grid-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background-color: #ffffff;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #333;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.1s ease-in-out, background-color 0.2s ease;
+}
+
+.grid-cell:hover {
+  background-color: #e0f7fa;
+  transform: scale(1.05);
+}
+
+.grid-cell:active {
+  transform: scale(0.95);
+}
+
+.grid-cell.selected {
+  background-color: #4fc3f7;
+  color: white;
+  box-shadow: 0 0 8px rgba(79, 195, 247, 0.6);
+  transform: scale(1.05);
+}
+
+.grid-cell.valid-word {
+  background-color: #66bb6a;
+  color: white;
+  box-shadow: 0 0 8px rgba(102, 187, 106, 0.6);
+  animation: pulse 0.6s ease-in-out;
+}
+
+.grid-cell.single-word-found {
+  background-color: #ffb74d;
+  color: white;
+  box-shadow: 0 0 8px rgba(255, 183, 77, 0.6);
+  animation: pulse 1s ease-in-out;
+}
+
+.grid-cell.invalid-swap {
+  background-color: #ef5350;
+  color: white;
+  box-shadow: 0 0 8px rgba(239, 83, 80, 0.6);
+  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+.grid-cell.shaking {
+  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes shake {
+  10%, 90% {
+    transform: translate3d(-1px, 0, 0);
+  }
+  
+  20%, 80% {
+    transform: translate3d(2px, 0, 0);
+  }
+
+  30%, 50%, 70% {
+    transform: translate3d(-3px, 0, 0);
+  }
+
+  40%, 60% {
+    transform: translate3d(3px, 0, 0);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  
+  50% {
+    transform: scale(1.1);
+  }
+  
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (max-width: 800px) {
+  .game-grid {
+    padding: 15px;
+  }
+  
+  .grid-cell-position {
+    width: 30px;
+    height: 30px;
+    margin: 1px;
+  }
+  
+  .grid-cell {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 600px) {
+  .game-grid {
+    padding: 10px;
+  }
+  
+  .grid-cell-position {
+    width: 24px;
+    height: 24px;
+    margin: 1px;
+  }
+  
+  .grid-cell {
+    width: 22px;
+    height: 22px;
+    font-size: 10px;
+  }
+} 
