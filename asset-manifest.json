@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/worfdall/static/css/main.ddc4fa3f.css",
+    "main.js": "/worfdall/static/js/main.bfb7ea4f.js",
+    "static/js/453.2028bfc8.chunk.js": "/worfdall/static/js/453.2028bfc8.chunk.js",
+    "index.html": "/worfdall/index.html",
+    "main.ddc4fa3f.css.map": "/worfdall/static/css/main.ddc4fa3f.css.map",
+    "main.bfb7ea4f.js.map": "/worfdall/static/js/main.bfb7ea4f.js.map",
+    "453.2028bfc8.chunk.js.map": "/worfdall/static/js/453.2028bfc8.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.ddc4fa3f.css",
+    "static/js/main.bfb7ea4f.js"
+  ]
+}
