@@ -224,3 +224,29 @@ main {
     font-size: 1rem;
   }
 }
+
+.level-theme-container {
+  margin-bottom: 20px;
+  width: 100%;
+  max-width: 800px;
+  text-align: center;
+}
+
+.level-theme {
+  font-size: 1.5rem;
+  color: #4a6fa5;
+  margin: 0;
+  padding: 10px 20px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  display: inline-block;
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .level-theme {
+    font-size: 1.2rem;
+    padding: 8px 15px;
+  }
+}

@@ -1130,6 +1130,7 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
       const newLevel: Level = {
         id: 0, // This will be set by the user when adding to levels.ts
         name: "Generated Level",
+        theme: "Generated Theme",
         grid: grid,
         validWords: words
       };

@@ -4,11 +4,13 @@ import './LevelTransition.css';
 
 interface LevelTransitionProps {
   levelNumber: number;
+  levelTheme?: string;
   onTransitionComplete: () => void;
 }
 
 const LevelTransition: React.FC<LevelTransitionProps> = ({ 
   levelNumber, 
+  levelTheme,
   onTransitionComplete 
 }) => {
   const [visible, setVisible] = useState(true);
@@ -39,7 +41,17 @@ const LevelTransition: React.FC<LevelTransitionProps> = ({
           exit={{ opacity: 0 }}
           transition={{ duration: 1 }}
         >
-          <h2>Level {levelNumber}</h2>
+          <motion.h2
+            animate={{ scale: [1, 1.1, 1] }}
+            transition={{ 
+              duration: 2,
+              repeat: Infinity,
+              times: [0, 0.5, 1]
+            }}
+          >
+            Level {levelNumber}
+          </motion.h2>
+          {levelTheme && <h3 className="level-transition-theme">{levelTheme}</h3>}
         </motion.div>
       )}
     </AnimatePresence>

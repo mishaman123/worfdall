@@ -10,6 +10,16 @@
   flex-direction: column;
   align-items: center;
   min-width: 100px;
+  z-index: 100;
+}
+
+.level-indicator.clickable {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.level-indicator.clickable:hover {
+  background-color: rgba(245, 245, 245, 0.95);
 }
 
 .level-text {
@@ -34,6 +44,84 @@
   transition: width 0.5s ease;
 }
 
+/* Level switcher indicator */
+.level-switcher-indicator {
+  margin-top: 5px;
+  font-size: 0.7rem;
+  color: #888;
+}
+
+.level-switcher-arrow {
+  display: inline-block;
+  transition: transform 0.3s ease;
+}
+
+/* Level switcher panel */
+.level-switcher-panel {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 10px;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  width: 250px;
+  z-index: 101;
+  overflow: hidden;
+  transform-origin: top center;
+}
+
+.level-switcher-content {
+  padding: 15px;
+  width: 100%;
+  opacity: 0; /* Start with opacity 0 */
+  transition: opacity 0.2s ease;
+}
+
+/* When panel is open, make content visible */
+.level-switcher-panel[data-state="open"] .level-switcher-content {
+  opacity: 1;
+}
+
+.level-switcher-panel h3 {
+  margin: 0 0 10px 0;
+  font-size: 0.9rem;
+  color: #666;
+  text-align: center;
+}
+
+.level-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.level-button {
+  background-color: #e0e0e0;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 600;
+  color: #555;
+}
+
+.level-button:hover {
+  background-color: #d0d0d0;
+  transform: translateY(-2px);
+}
+
+.level-button.active {
+  background-color: #4fc3f7;
+  color: white;
+  box-shadow: 0 2px 4px rgba(79, 195, 247, 0.3);
+}
+
 @media (max-width: 600px) {
   .level-indicator {
     top: 10px;
@@ -48,5 +136,15 @@
   
   .level-progress {
     height: 4px;
+  }
+  
+  .level-switcher-panel {
+    width: 200px;
+    padding: 10px;
+  }
+  
+  .level-button {
+    padding: 6px 12px;
+    font-size: 0.8rem;
   }
 } 

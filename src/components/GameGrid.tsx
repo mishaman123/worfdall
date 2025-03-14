@@ -11,6 +11,7 @@ interface GridCell {
   selected: boolean;
   shaking: boolean;
   swapping?: boolean;
+  selectedToSwap?: boolean;
   validWord?: boolean;
   invalidSwap?: boolean;
   isEmpty: boolean;
@@ -453,10 +454,8 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete }) => {
         // Add found words to the list
         setFoundWords(prev => [...prev, ...wordsFound]);
         
-        // Highlight valid words, then swap and clear
-        highlightValidWords(wordPositions, () => {
-          swapLetters(selectedCell.row, selectedCell.col, rowIndex, colIndex, wordPositions);
-        });
+        // Directly swap letters without highlighting first
+        swapLetters(selectedCell.row, selectedCell.col, rowIndex, colIndex, wordPositions);
       } else if (wordsFound.length === 1) {
         // Found one word but need two - show feedback
         showSingleWordFeedback(wordPositions);
@@ -487,21 +486,6 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete }) => {
     }, 1000);
   };
 
-  // Highlight valid words before clearing
-  const highlightValidWords = (wordPositions: { row: number, col: number }[], callback: () => void) => {
-    const newGrid = JSON.parse(JSON.stringify(grid));
-    
-    // Mark cells in valid words
-    wordPositions.forEach(pos => {
-      newGrid[pos.row][pos.col].validWord = true;
-    });
-    
-    setGrid(newGrid);
-    
-    // After highlighting, proceed with callback
-    setTimeout(callback, 600);
-  };
-
   // Swap letters between two cells
   const swapLetters = (
     row1: number, 
@@ -510,61 +494,71 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete }) => {
     col2: number, 
     wordPositions: { row: number, col: number }[]
   ) => {
-    const newGrid = JSON.parse(JSON.stringify(grid));
+    // Step 1: Fade selected cells from blue to green
+    const fadeGrid = JSON.parse(JSON.stringify(grid));
     
-    // Store the letters
-    const letter1 = newGrid[row1][col1].letter;
-    const letter2 = newGrid[row2][col2].letter;
+    // Mark the selected cells for the fade-to-green animation
+    fadeGrid[row1][col1].selectedToSwap = true;
+    fadeGrid[row2][col2].selectedToSwap = true;
     
-    // Swap the letters
-    newGrid[row1][col1].letter = letter2;
-    newGrid[row2][col2].letter = letter1;
+    // Ensure selected state is removed to avoid animation conflicts
+    fadeGrid[row1][col1].selected = false;
+    fadeGrid[row2][col2].selected = false;
     
-    // Mark both as swapping (for animation)
-    newGrid[row1][col1].swapping = true;
-    newGrid[row2][col2].swapping = true;
-    
-    // Reset selection and valid word highlights
-    for (let i = 0; i < newGrid.length; i++) {
-      for (let j = 0; j < newGrid[i].length; j++) {
-        newGrid[i][j].selected = false;
-        newGrid[i][j].validWord = false;
-      }
-    }
-    
-    setGrid(newGrid);
+    setGrid(fadeGrid);
     setSelectedCell(null);
     
-    // After swap animation completes, make word letters fade out
+    // Step 2: After fade completes, start the swap animation
     setTimeout(() => {
-      const updatedGrid = JSON.parse(JSON.stringify(newGrid));
+      const swapGrid = JSON.parse(JSON.stringify(fadeGrid));
       
-      // Reset swapping state
-      updatedGrid[row1][col1].swapping = false;
-      updatedGrid[row2][col2].swapping = false;
+      // Mark both as swapping (for animation) but DON'T swap letters yet
+      swapGrid[row1][col1].swapping = true;
+      swapGrid[row2][col2].swapping = true;
       
-      // Make all letters in valid words invisible
-      wordPositions.forEach(pos => {
-        updatedGrid[pos.row][pos.col].visible = false;
-      });
+      setGrid(swapGrid);
       
-      // Update remaining letters count
-      const clearedLetters = wordPositions.length;
-      console.log(`Clearing ${clearedLetters} letters`);
-      setRemainingLetters(prev => {
-        const newCount = prev - clearedLetters;
-        console.log(`New remaining letter count: ${newCount}`);
-        return newCount;
-      });
-      
-      setGrid(updatedGrid);
-      
-      // After fade-out animation, make letters fall
+      // Step 3: Perform letter swap at scale 0
       setTimeout(() => {
-        const fallenGrid = makeFall(updatedGrid);
-        setGrid(fallenGrid);
-      }, 300);
-    }, 800);
+        const letterSwapGrid = JSON.parse(JSON.stringify(swapGrid));
+        const letter1 = letterSwapGrid[row1][col1].letter;
+        const letter2 = letterSwapGrid[row2][col2].letter;
+        letterSwapGrid[row1][col1].letter = letter2;
+        letterSwapGrid[row2][col2].letter = letter1;
+        setGrid(letterSwapGrid);
+        
+        // Step 4: Highlight words immediately after grow animation completes
+        setTimeout(() => {
+          const highlightGrid = JSON.parse(JSON.stringify(letterSwapGrid));
+          highlightGrid[row1][col1].swapping = false;
+          highlightGrid[row2][col2].swapping = false;
+          wordPositions.forEach(pos => {
+            highlightGrid[pos.row][pos.col].validWord = true;
+          });
+          setGrid(highlightGrid);
+          
+          // Continue with fade out and fall
+          setTimeout(() => {
+            const fadeOutGrid = JSON.parse(JSON.stringify(highlightGrid));
+            wordPositions.forEach(pos => {
+              fadeOutGrid[pos.row][pos.col].visible = false;
+            });
+            setGrid(fadeOutGrid);
+            
+            setTimeout(() => {
+              const newGrid = makeFall(fadeOutGrid);
+              setGrid(newGrid);
+              const newRemainingLetters = remainingLetters - wordPositions.length;
+              setRemainingLetters(newRemainingLetters);
+              if (newRemainingLetters === 0) {
+                console.log("All letters cleared! Level complete!");
+                setTimeout(onLevelComplete, 1000);
+              }
+            }, 300); 
+          }, 1500);
+        }, 480); 
+      }, 400);
+    }, 500);
   };
 
   // Make letters fall down to fill empty spaces
@@ -643,6 +637,7 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete }) => {
                     <motion.div
                       className={`grid-cell 
                         ${cell.selected ? 'selected' : ''} 
+                        ${cell.selectedToSwap ? 'selected-to-swap' : ''}
                         ${cell.shaking ? 'shaking' : ''} 
                         ${cell.validWord ? 'valid-word' : ''} 
                         ${cell.singleWordFound ? 'single-word-found' : ''}
@@ -651,11 +646,12 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete }) => {
                       exit={{ opacity: 0 }}
                       onClick={() => handleLetterClick(rowIndex, colIndex)}
                       layout="position"
-                      animate={cell.swapping ? { scale: [1, 1.1, 1] } : {}}
+                      animate={cell.swapping ? { scale: [1, 0, 0, 1] } : {}}
                       transition={cell.swapping 
                         ? { 
-                            duration: 0.8, 
-                            ease: "easeInOut" 
+                            duration: 0.8,
+                            ease: "easeInOut",
+                            times: [0, 0.4, 0.6, 1]  // Spend more time at scale 0 to make the swap more visible
                           } 
                         : { 
                             type: "spring", 

@@ -64,6 +64,19 @@
   transform: scale(1.05);
 }
 
+.grid-cell.selected-to-swap {
+  animation: fadeToGreen 0.5s forwards;
+  background-color: #66bb6a;
+  color: white;
+  box-shadow: 0 0 8px rgba(102, 187, 106, 0.6);
+}
+
+.grid-cell.swapping {
+  background-color: #66bb6a;
+  color: white;
+  box-shadow: 0 0 8px rgba(102, 187, 106, 0.6);
+}
+
 .grid-cell.valid-word {
   background-color: #66bb6a;
   color: white;
@@ -120,6 +133,18 @@
     transform: scale(1);
   }
 }
+
+@keyframes fadeToGreen {
+  0% {
+    background-color: #4fc3f7;
+    box-shadow: 0 0 8px rgba(79, 195, 247, 0.6);
+  }
+  100% {
+    background-color: #66bb6a;
+    box-shadow: 0 0 8px rgba(102, 187, 106, 0.6);
+  }
+}
+
 
 @media (max-width: 800px) {
   .game-grid {

@@ -3,6 +3,7 @@
 export interface Level {
   id: number;
   name: string;
+  theme: string;
   grid: string[][];
   validWords: string[];
 }
@@ -11,6 +12,7 @@ export interface Level {
 export const level1: Level = {
   id: 1,
   name: "Level 1",
+  theme: "Think Outside the Box",
   grid: [
     [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
     [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
@@ -54,6 +56,7 @@ export const level1: Level = {
 
 export const level2: Level = {
   id: 2, // Replace with the next level number
+  theme: "Sink or Swim",
   name: "Level 2", // Replace with appropriate name
   grid: [
     [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
@@ -96,6 +99,7 @@ export const level2: Level = {
 // Level 2 data with animals
 export const level3: Level = {
   id: 3,
+  theme: "Furtive Features",
   name: "Level 3",
   grid: [
     [' ', ' ', ' ', ' ', 'A', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
@@ -136,5 +140,47 @@ export const level3: Level = {
   ]
 };
 
+export const level4: Level = {
+  id: 4, // Replace with the next level number
+  theme: "Sharing is Caring",
+  name: "Level 4", // Replace with appropriate name
+  grid: [
+    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', ' ', ' ', ' ', 'I', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', ' ', ' ', 'T', 'T', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', ' ', ' ', 'S', 'P', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', ' ', ' ', 'U', 'E', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', ' ', ' ', 'N', 'M', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', ' ', ' ', 'E', 'Y', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', ' ', ' ', 'X', 'S', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', ' ', ' ', 'T', 'P', 'K', 'T', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', ' ', ' ', 'A', 'D', 'A', 'G', 'R', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', ' ', ' ', 'O', 'C', 'C', 'H', 'O', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', 'I', 'N', 'O', 'E', 'B', 'T', 'O', 'K', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', 'S', 'N', 'R', 'D', 'I', 'O', 'A', 'K', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', 'L', 'I', 'S', 'K', 'E', 'D', 'I', 'N', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', 'D', 'I', 'N', 'C', 'O', 'R', 'D', 'T', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', 'F', 'A', 'C', 'T', 'U', 'B', 'E', 'A', 'M', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', 'R', 'E', 'D', 'T', 'U', 'M', 'B', 'E', 'R', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', 'Y', 'O', 'A', 'P', 'I', 'N', 'T', 'L', 'R', 'E', 'S', 'T', ' ', ' ', ' ', ' ', ' ']
+  ],
+  validWords: [
+    "TIKTOK",
+    "FACEBOOK",
+    "TUMBLR",
+    "PINTEREST",
+    "INSTAGRAM",
+    "YOUTUBE",
+    "REDDIT",
+    "LINKEDIN",
+    "MYSPACE",
+    "DISCORD",
+    "SNAPCHAT",
+    "NEXTDOOR"
+  ]
+};
+
 // Export all levels
-export const levels = [level1, level2, level3];
+export const levels = [level1, level2, level3, level4];

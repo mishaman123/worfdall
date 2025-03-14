@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 import GameGrid from './components/GameGrid';
 import StartScreen from './components/StartScreen';
 import LevelTransition from './components/LevelTransition';
 import LevelIndicator from './components/LevelIndicator';
-import LevelSwitcher from './components/LevelSwitcher';
 import LevelCreator from './components/LevelCreator';
 import { levels } from './data/levels';
 import { FEATURES } from './utils/devMode';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Game states
 type GameState = 'start' | 'playing' | 'transition' | 'complete';
@@ -16,6 +16,8 @@ function App() {
   const [gameState, setGameState] = useState<GameState>('start');
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
   const [showLevelCreator, setShowLevelCreator] = useState(false);
+  const [isGridAnimating, setIsGridAnimating] = useState(false);
+  const prevLevelIndexRef = useRef(currentLevelIndex);
   
   // Secret keypress to show level creator - only in dev mode
   useEffect(() => {
@@ -75,16 +77,41 @@ function App() {
   
   // Handle level switching for testing
   const handleSwitchLevel = (levelIndex: number) => {
-    setCurrentLevelIndex(levelIndex);
-    setGameState('playing');
-    console.log(`Switched to level ${levels[levelIndex].id} for testing`);
+    if (levelIndex === currentLevelIndex) return; // Don't switch if it's the same level
+    
+    setIsGridAnimating(true);
+    prevLevelIndexRef.current = currentLevelIndex;
+    
+    // After fade out, update the level
+    setTimeout(() => {
+      setCurrentLevelIndex(levelIndex);
+      setGameState('playing');
+      console.log(`Switched to level ${levels[levelIndex].id} for testing`);
+      
+      // After a short delay, fade in the new grid
+      setTimeout(() => {
+        setIsGridAnimating(false);
+      }, 50);
+    }, 300); // Match this with the exit animation duration
   };
   
   // Render content based on game state
   const renderContent = () => {
     switch (gameState) {
       case 'start':
-        return <StartScreen onStart={handleStartGame} />;
+        return (
+          <>
+            {FEATURES.LEVEL_SWITCHER && (
+              <LevelIndicator 
+                currentLevel={1} 
+                totalLevels={levels.length} 
+                onSwitchLevel={handleSwitchLevel}
+                showLevelSwitcher={true}
+              />
+            )}
+            <StartScreen onStart={handleStartGame} />
+          </>
+        );
       
       case 'playing':
         return (
@@ -92,11 +119,29 @@ function App() {
             <LevelIndicator 
               currentLevel={levels[currentLevelIndex].id} 
               totalLevels={levels.length} 
+              onSwitchLevel={FEATURES.LEVEL_SWITCHER ? handleSwitchLevel : undefined}
+              showLevelSwitcher={FEATURES.LEVEL_SWITCHER}
             />
-            <GameGrid 
-              level={levels[currentLevelIndex]} 
-              onLevelComplete={handleLevelComplete} 
-            />
+            <AnimatePresence mode="wait">
+              {!isGridAnimating && (
+                <motion.div
+                  key={`grid-${currentLevelIndex}`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="level-theme-container">
+                    <h2 className="level-theme">{levels[currentLevelIndex].theme}</h2>
+                  </div>
+                  <GameGrid 
+                    key={`game-grid-${currentLevelIndex}`}
+                    level={levels[currentLevelIndex]} 
+                    onLevelComplete={handleLevelComplete} 
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </>
         );
       
@@ -104,6 +149,7 @@ function App() {
         return (
           <LevelTransition 
             levelNumber={levels[currentLevelIndex + 1].id} 
+            levelTheme={levels[currentLevelIndex + 1].theme}
             onTransitionComplete={handleTransitionComplete} 
           />
         );
@@ -148,19 +194,11 @@ function App() {
             {renderContent()}
           </main>
           
-          {/* Level Switcher for testing - only show during gameplay or at start, and only in dev mode */}
-          {(gameState === 'playing' || gameState === 'start') && FEATURES.LEVEL_SWITCHER && (
-            <>
-              <LevelSwitcher 
-                currentLevel={currentLevelIndex}
-                onSwitchLevel={handleSwitchLevel}
-              />
-              {FEATURES.LEVEL_CREATOR && (
-                <div className="keyboard-hint">
-                  Press <kbd>L</kbd> to open Level Creator
-                </div>
-              )}
-            </>
+          {/* Level Creator hint - only show during gameplay or at start, and only in dev mode */}
+          {(gameState === 'playing' || gameState === 'start') && FEATURES.LEVEL_CREATOR && (
+            <div className="keyboard-hint">
+              Press <kbd>L</kbd> to open Level Creator
+            </div>
           )}
         </>
       )}
