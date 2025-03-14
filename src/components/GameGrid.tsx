@@ -22,11 +22,12 @@ interface GameGridProps {
   onLevelComplete: () => void;
 }
 
-// Generate a grid from level data
+// Generate a grid from level data and trim empty rows and columns
 const generateGridFromLevel = (level: Level): GridCell[][] => {
-  const grid = [];
+  // First, create the full grid
+  const fullGrid: GridCell[][] = [];
   for (let i = 0; i < level.grid.length; i++) {
-    const row = [];
+    const row: GridCell[] = [];
     for (let j = 0; j < level.grid[i].length; j++) {
       const letter = level.grid[i][j];
       const isEmpty = letter === ' ';
@@ -39,9 +40,49 @@ const generateGridFromLevel = (level: Level): GridCell[][] => {
         isEmpty: isEmpty
       });
     }
-    grid.push(row);
+    fullGrid.push(row);
   }
-  return grid;
+  
+  // Find the bounds of non-empty cells
+  let minRow = fullGrid.length;
+  let maxRow = -1;
+  let minCol = fullGrid[0].length;
+  let maxCol = -1;
+  
+  // First pass: find the actual bounds of content
+  for (let i = 0; i < fullGrid.length; i++) {
+    for (let j = 0; j < fullGrid[i].length; j++) {
+      if (fullGrid[i][j].visible && !fullGrid[i][j].isEmpty) {
+        minRow = Math.min(minRow, i);
+        maxRow = Math.max(maxRow, i);
+        minCol = Math.min(minCol, j);
+        maxCol = Math.max(maxCol, j);
+      }
+    }
+  }
+  
+  // If no content found, return empty grid
+  if (minRow > maxRow || minCol > maxCol) {
+    console.log("No visible content found in grid");
+    return [[]];
+  }
+  
+  // Create the trimmed grid with only the content
+  const trimmedGrid: GridCell[][] = [];
+  for (let i = minRow; i <= maxRow; i++) {
+    const row: GridCell[] = [];
+    for (let j = minCol; j <= maxCol; j++) {
+      // Preserve the original grid coordinates in the id
+      const cell = { ...fullGrid[i][j], id: `${i}-${j}` };
+      row.push(cell);
+    }
+    trimmedGrid.push(row);
+  }
+  
+  console.log(`Trimmed grid from ${fullGrid.length}x${fullGrid[0].length} to ${trimmedGrid.length}x${trimmedGrid[0].length}`);
+  console.log(`Content bounds: rows ${minRow}-${maxRow}, cols ${minCol}-${maxCol}`);
+  
+  return trimmedGrid;
 };
 
 // Check if two positions are adjacent
@@ -59,7 +100,7 @@ const areAdjacent = (pos1: { row: number, col: number }, pos2: { row: number, co
 
 // Get adjacent positions
 const getAdjacentPositions = (row: number, col: number, maxRows: number, maxCols: number): { row: number, col: number }[] => {
-  const positions = [];
+  const positions: { row: number, col: number }[] = [];
   
   // Check above
   if (row > 0) {
@@ -82,6 +123,12 @@ const getAdjacentPositions = (row: number, col: number, maxRows: number, maxCols
   }
   
   return positions;
+};
+
+// Extract original grid coordinates from cell id
+const getOriginalCoordinates = (id: string): { row: number, col: number } => {
+  const [row, col] = id.split('-').map(Number);
+  return { row, col };
 };
 
 const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete }) => {
@@ -266,7 +313,7 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete }) => {
       // Extract the word
       if (endCol - startCol >= 2) { // At least 3 letters
         let extractedString = '';
-        const positions = [];
+        const positions: { row: number, col: number }[] = [];
         for (let c = startCol; c <= endCol; c++) {
           extractedString += tempGrid[row][c].letter.toUpperCase();
           positions.push({ row, col: c });
@@ -317,7 +364,7 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete }) => {
       // Extract the word
       if (endRow - startRow >= 2) { // At least 3 letters
         let extractedString = '';
-        const positions = [];
+        const positions: { row: number, col: number }[] = [];
         for (let r = startRow; r <= endRow; r++) {
           extractedString += tempGrid[r][col].letter.toUpperCase();
           positions.push({ row: r, col });
@@ -423,6 +470,23 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete }) => {
     }
   };
 
+  // Show feedback when only one word is found
+  const showSingleWordFeedback = (wordPositions: { row: number, col: number }[]) => {
+    const newGrid = JSON.parse(JSON.stringify(grid));
+    
+    // Highlight the single word found
+    wordPositions.forEach(pos => {
+      newGrid[pos.row][pos.col].singleWordFound = true;
+    });
+    
+    setGrid(newGrid);
+    
+    // Reset after animation
+    setTimeout(() => {
+      deselectAll();
+    }, 1000);
+  };
+
   // Highlight valid words before clearing
   const highlightValidWords = (wordPositions: { row: number, col: number }[], callback: () => void) => {
     const newGrid = JSON.parse(JSON.stringify(grid));
@@ -522,7 +586,12 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete }) => {
           
           // If there's an empty cell below, move the current letter down
           if (emptyRow > row) {
-            newGrid[emptyRow][col] = { ...newGrid[row][col], id: `${emptyRow}-${col}` };
+            // Preserve the original grid coordinates in the id
+            const originalCoords = getOriginalCoordinates(newGrid[row][col].id);
+            newGrid[emptyRow][col] = { 
+              ...newGrid[row][col], 
+              id: originalCoords ? `${originalCoords.row}-${originalCoords.col}` : `${emptyRow}-${col}` 
+            };
             newGrid[row][col].visible = false;
           }
         }
@@ -557,23 +626,6 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete }) => {
     }, 500);
     
     return newGrid;
-  };
-
-  // Show feedback when only one word is found
-  const showSingleWordFeedback = (wordPositions: { row: number, col: number }[]) => {
-    const newGrid = JSON.parse(JSON.stringify(grid));
-    
-    // Highlight the single word found
-    wordPositions.forEach(pos => {
-      newGrid[pos.row][pos.col].singleWordFound = true;
-    });
-    
-    setGrid(newGrid);
-    
-    // Reset after animation
-    setTimeout(() => {
-      deselectAll();
-    }, 1000);
   };
 
   return (

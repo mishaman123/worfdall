@@ -2,6 +2,28 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## Development Features
+
+This project includes development-only features that are automatically disabled in production builds:
+
+### Feature Flags
+
+The following features are only enabled when running the app locally (on localhost or 127.0.0.1):
+
+- **Level Switcher**: Allows quick navigation between game levels for testing
+- **Level Creator**: Tool for creating and testing new game levels (press `L` to open)
+
+### URL Parameter Overrides
+
+You can override feature flags using URL parameters:
+
+- `?dev=true` - Enable all development features
+- `?features=true` - Enable all development features
+- `?levelSwitcher=true` - Enable only the Level Switcher
+- `?levelCreator=true` - Enable only the Level Creator
+
+Example: `https://your-deployed-site.com/?levelCreator=true`
+
 ## Available Scripts
 
 In the project directory, you can run:
@@ -31,13 +53,13 @@ See the section about [deployment](https://facebook.github.io/create-react-app/d
 
 ### `npm run eject`
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+**Note: this is a one-way operation. Once you `eject`, you can't go back!**
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
 
 ## Learn More
 
