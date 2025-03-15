@@ -67,15 +67,17 @@ function App() {
   
   // Handle transition completion
   const handleTransitionComplete = () => {
-    if (currentLevelIndex < levels.length - 1) {
-      // Move to next level
-      setCurrentLevelIndex(prev => prev + 1);
-      setGameState('playing');
-      console.log(`Now playing level ${currentLevelIndex + 2}`);
-    }
+    // Move to the next level
+    setCurrentLevelIndex(prevIndex => prevIndex + 1);
+    setGameState('playing');
+    
+    // Reset grid animation state after a short delay
+    setTimeout(() => {
+      setIsGridAnimating(false);
+    }, 300); // Match this with the exit animation duration
   };
   
-  // Handle level switching for testing
+  // Handle level switching
   const handleSwitchLevel = (levelIndex: number) => {
     if (levelIndex === currentLevelIndex) return; // Don't switch if it's the same level
     

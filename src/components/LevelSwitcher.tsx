@@ -13,7 +13,7 @@ const LevelSwitcher: React.FC<LevelSwitcherProps> = ({
 }) => {
   return (
     <div className="level-switcher">
-      <h3>Test Mode: Level Switcher</h3>
+      <h3>Level Switcher</h3>
       <div className="level-buttons">
         {levels.map((level, index) => (
           <button

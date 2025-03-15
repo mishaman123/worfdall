@@ -32,7 +32,8 @@ const getFeatureOverride = (featureName: string): boolean | null => {
 // Feature flags with URL parameter override support
 export const FEATURES = {
   get LEVEL_SWITCHER(): boolean {
-    return getFeatureOverride('levelSwitcher') ?? isDevMode();
+    // Always enable level switcher for all users, with option to disable via URL parameter
+    return getFeatureOverride('levelSwitcher') ?? true;
   },
   get LEVEL_CREATOR(): boolean {
     return getFeatureOverride('levelCreator') ?? isDevMode();
