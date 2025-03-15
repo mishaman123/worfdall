@@ -21,3 +21,8 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# backup directories
+/src_backup
+/public_backup
+/wordfall
