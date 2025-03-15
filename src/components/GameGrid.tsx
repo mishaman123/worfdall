@@ -527,36 +527,218 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete }) => {
         letterSwapGrid[row2][col2].letter = letter1;
         setGrid(letterSwapGrid);
         
-        // Step 4: Highlight words immediately after grow animation completes
+        // Step 4: After grow animation completes, apply cascading highlight effect
         setTimeout(() => {
           const highlightGrid = JSON.parse(JSON.stringify(letterSwapGrid));
           highlightGrid[row1][col1].swapping = false;
           highlightGrid[row2][col2].swapping = false;
-          wordPositions.forEach(pos => {
-            highlightGrid[pos.row][pos.col].validWord = true;
-          });
           setGrid(highlightGrid);
           
-          // Continue with fade out and fall
-          setTimeout(() => {
-            const fadeOutGrid = JSON.parse(JSON.stringify(highlightGrid));
-            wordPositions.forEach(pos => {
-              fadeOutGrid[pos.row][pos.col].visible = false;
-            });
-            setGrid(fadeOutGrid);
+          // Group word positions by orientation (horizontal or vertical)
+          const horizontalWords: { row: number, col: number }[][] = [];
+          const verticalWords: { row: number, col: number }[][] = [];
+          
+          // First, identify all unique rows and columns in the word positions
+          const rows = new Set<number>();
+          const cols = new Set<number>();
+          
+          wordPositions.forEach(pos => {
+            rows.add(pos.row);
+            cols.add(pos.col);
+          });
+          
+          // Convert to arrays and sort
+          const uniqueRows = Array.from(rows).sort((a, b) => a - b);
+          const uniqueCols = Array.from(cols).sort((a, b) => a - b);
+          
+          console.log("Unique rows:", uniqueRows);
+          console.log("Unique columns:", uniqueCols);
+          
+          // For each row, check if it contains at least 3 consecutive positions
+          uniqueRows.forEach(row => {
+            // Get all positions in this row
+            const positionsInRow = wordPositions.filter(pos => pos.row === row)
+              .sort((a, b) => a.col - b.col); // Sort by column
             
-            setTimeout(() => {
-              const newGrid = makeFall(fadeOutGrid);
-              setGrid(newGrid);
-              const newRemainingLetters = remainingLetters - wordPositions.length;
-              setRemainingLetters(newRemainingLetters);
-              if (newRemainingLetters === 0) {
-                console.log("All letters cleared! Level complete!");
-                setTimeout(onLevelComplete, 1000);
+            if (positionsInRow.length >= 3) {
+              // Check if these positions form a consecutive sequence
+              let isConsecutive = true;
+              for (let i = 1; i < positionsInRow.length; i++) {
+                if (positionsInRow[i].col !== positionsInRow[i-1].col + 1) {
+                  isConsecutive = false;
+                  break;
+                }
               }
-            }, 300); 
-          }, 1500);
-        }, 480); 
+              
+              if (isConsecutive) {
+                horizontalWords.push(positionsInRow);
+                console.log("Found horizontal word in row", row, ":", positionsInRow);
+              }
+            }
+          });
+          
+          // For each column, check if it contains at least 3 consecutive positions
+          uniqueCols.forEach(col => {
+            // Get all positions in this column
+            const positionsInCol = wordPositions.filter(pos => pos.col === col)
+              .sort((a, b) => a.row - b.row); // Sort by row
+            
+            if (positionsInCol.length >= 3) {
+              // Check if these positions form a consecutive sequence
+              let isConsecutive = true;
+              for (let i = 1; i < positionsInCol.length; i++) {
+                if (positionsInCol[i].row !== positionsInCol[i-1].row + 1) {
+                  isConsecutive = false;
+                  break;
+                }
+              }
+              
+              if (isConsecutive) {
+                verticalWords.push(positionsInCol);
+                console.log("Found vertical word in column", col, ":", positionsInCol);
+              }
+            }
+          });
+          
+          // If we couldn't identify any words, use the original positions
+          if (horizontalWords.length === 0 && verticalWords.length === 0) {
+            console.log("No clear words identified, using original positions");
+            horizontalWords.push(wordPositions);
+          }
+          
+          console.log("Horizontal words:", horizontalWords);
+          console.log("Vertical words:", verticalWords);
+          
+          // Keep track of all highlighted positions
+          const highlightedPositions: { row: number, col: number }[] = [];
+          
+          // Process all words sequentially
+          const processWords = () => {
+            // Process horizontal words first - row by row, top to bottom
+            const processHorizontalWords = (wordIndex: number) => {
+              if (wordIndex >= horizontalWords.length) {
+                // Move on to vertical words after all horizontal words are done
+                processVerticalWords(0);
+                return;
+              }
+              
+              const word = horizontalWords[wordIndex];
+              console.log("Processing horizontal word:", word);
+              
+              // Process each letter in this word
+              let letterIndex = 0;
+              
+              const highlightNextLetter = () => {
+                if (letterIndex >= word.length) {
+                  // Move to the next word after a small pause
+                  setTimeout(() => {
+                    processHorizontalWords(wordIndex + 1);
+                  }, 100);
+                  return;
+                }
+                
+                const pos = word[letterIndex];
+                
+                // Create a new grid with this position highlighted
+                const cascadeGrid = JSON.parse(JSON.stringify(highlightGrid));
+                
+                // Add this position to highlighted positions
+                highlightedPositions.push(pos);
+                
+                // Apply all highlights so far
+                highlightedPositions.forEach(highlightPos => {
+                  cascadeGrid[highlightPos.row][highlightPos.col].validWord = true;
+                });
+                
+                // Update the grid
+                setGrid(cascadeGrid);
+                
+                // Move to next letter
+                letterIndex++;
+                setTimeout(highlightNextLetter, 50);
+              };
+              
+              // Start highlighting letters in this word
+              highlightNextLetter();
+            };
+            
+            // Process vertical words - column by column, left to right
+            const processVerticalWords = (wordIndex: number) => {
+              if (wordIndex >= verticalWords.length) {
+                // All words are done, continue with fade out and fall
+                finishAnimation();
+                return;
+              }
+              
+              const word = verticalWords[wordIndex];
+              console.log("Processing vertical word:", word);
+              
+              // Process each letter in this word
+              let letterIndex = 0;
+              
+              const highlightNextLetter = () => {
+                if (letterIndex >= word.length) {
+                  // Move to the next word after a small pause
+                  setTimeout(() => {
+                    processVerticalWords(wordIndex + 1);
+                  }, 100);
+                  return;
+                }
+                
+                const pos = word[letterIndex];
+                
+                // Create a new grid with this position highlighted
+                const cascadeGrid = JSON.parse(JSON.stringify(highlightGrid));
+                
+                // Add this position to highlighted positions
+                highlightedPositions.push(pos);
+                
+                // Apply all highlights so far
+                highlightedPositions.forEach(highlightPos => {
+                  cascadeGrid[highlightPos.row][highlightPos.col].validWord = true;
+                });
+                
+                // Update the grid
+                setGrid(cascadeGrid);
+                
+                // Move to next letter
+                letterIndex++;
+                setTimeout(highlightNextLetter, 50);
+              };
+              
+              // Start highlighting letters in this word
+              highlightNextLetter();
+            };
+            
+            // Start the process with the first horizontal word
+            processHorizontalWords(0);
+          };
+          
+          // Function to handle fade out and fall after all animations
+          const finishAnimation = () => {
+            setTimeout(() => {
+              const fadeOutGrid = JSON.parse(JSON.stringify(highlightGrid));
+              wordPositions.forEach(pos => {
+                fadeOutGrid[pos.row][pos.col].visible = false;
+              });
+              setGrid(fadeOutGrid);
+              
+              setTimeout(() => {
+                const newGrid = makeFall(fadeOutGrid);
+                setGrid(newGrid);
+                const newRemainingLetters = remainingLetters - wordPositions.length;
+                setRemainingLetters(newRemainingLetters);
+                if (newRemainingLetters === 0) {
+                  console.log("All letters cleared! Level complete!");
+                  setTimeout(onLevelComplete, 1000);
+                }
+              }, 300); 
+            }, 1200); // Extended pause before fade-out to give players more time to see the completed words
+          };
+          
+          // Start the cascading process
+          processWords();
+        }, 480);
       }, 400);
     }, 500);
   };

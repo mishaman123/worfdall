@@ -81,7 +81,7 @@
   background-color: #66bb6a;
   color: white;
   box-shadow: 0 0 8px rgba(102, 187, 106, 0.6);
-  animation: pulse 0.6s ease-in-out;
+  animation: cascadeReveal 0.4s ease-out forwards;
 }
 
 .grid-cell.single-word-found {
@@ -145,6 +145,19 @@
   }
 }
 
+@keyframes cascadeReveal {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
 
 @media (max-width: 800px) {
   .game-grid {

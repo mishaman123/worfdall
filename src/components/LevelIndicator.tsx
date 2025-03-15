@@ -44,6 +44,12 @@ const LevelIndicator: React.FC<LevelIndicatorProps> = ({
   
   const handleLevelSelect = (levelIndex: number) => {
     if (onSwitchLevel) {
+      // If clicking the current level, restart it
+      if (levelIndex === currentLevel - 1) {
+        console.log(`Restarting level ${levels[levelIndex].id}`);
+      }
+      
+      // Always call onSwitchLevel to either switch or restart
       onSwitchLevel(levelIndex);
       setIsPanelOpen(false);
     }
@@ -96,18 +102,22 @@ const LevelIndicator: React.FC<LevelIndicatorProps> = ({
             >
               <h3>Select Level</h3>
               <div className="level-buttons">
-                {levels.map((level, index) => (
-                  <button
-                    key={level.id}
-                    className={`level-button ${index === currentLevel - 1 ? 'active' : ''}`}
-                    onClick={(e) => {
-                      e.stopPropagation(); // Prevent panel from closing
-                      handleLevelSelect(index);
-                    }}
-                  >
-                    Level {level.id}
-                  </button>
-                ))}
+                {levels.map((level, index) => {
+                  const isActive = index === currentLevel - 1;
+                  return (
+                    <button
+                      key={level.id}
+                      className={`level-button ${isActive ? 'active' : ''}`}
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent panel from closing
+                        handleLevelSelect(index);
+                      }}
+                      title={isActive ? "Restart level" : `Switch to level ${level.id}`}
+                    >
+                      Level {level.id} {isActive && <span className="restart-icon">🔄</span>}
+                    </button>
+                  );
+                })}
               </div>
             </motion.div>
           </motion.div>
