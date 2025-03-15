@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/worfdall/static/css/main.81bd3acf.css",
-    "main.js": "/worfdall/static/js/main.2500475c.js",
+    "main.js": "/worfdall/static/js/main.3082ca5b.js",
     "static/js/453.2028bfc8.chunk.js": "/worfdall/static/js/453.2028bfc8.chunk.js",
     "index.html": "/worfdall/index.html",
     "main.81bd3acf.css.map": "/worfdall/static/css/main.81bd3acf.css.map",
-    "main.2500475c.js.map": "/worfdall/static/js/main.2500475c.js.map",
+    "main.3082ca5b.js.map": "/worfdall/static/js/main.3082ca5b.js.map",
     "453.2028bfc8.chunk.js.map": "/worfdall/static/js/453.2028bfc8.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.81bd3acf.css",
-    "static/js/main.2500475c.js"
+    "static/js/main.3082ca5b.js"
   ]
 }
