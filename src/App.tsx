@@ -79,32 +79,28 @@ function App() {
   
   // Handle level switching
   const handleSwitchLevel = (levelIndex: number) => {
-    // Check if we're restarting the current level
-    const isRestart = levelIndex === currentLevelIndex;
-    
-    // If restarting, just reset the grid animation state
-    if (isRestart) {
-      console.log(`Restarting level ${levels[levelIndex].id}`);
-      setIsGridAnimating(true);
-      
-      // After a short delay, reset the grid
-      setTimeout(() => {
-        setIsGridAnimating(false);
-      }, 300);
-      return;
-    }
-    
-    // Otherwise, switch to a different level
+    // Always animate the grid out, whether restarting or switching
     setIsGridAnimating(true);
     prevLevelIndexRef.current = currentLevelIndex;
     
-    // After fade out, update the level
+    // Check if we're restarting the current level
+    const isRestart = levelIndex === currentLevelIndex;
+    
+    // After fade out, update or restart the level
     setTimeout(() => {
-      setCurrentLevelIndex(levelIndex);
-      setGameState('playing');
-      console.log(`Switched to level ${levels[levelIndex].id}`);
+      if (isRestart) {
+        console.log(`Restarting level ${levels[levelIndex].id}`);
+        // For restart, we don't need to change the currentLevelIndex
+        // Just ensure we're in playing state
+        setGameState('playing');
+      } else {
+        // For level switch, update the level index
+        setCurrentLevelIndex(levelIndex);
+        setGameState('playing');
+        console.log(`Switched to level ${levels[levelIndex].id}`);
+      }
       
-      // After a short delay, fade in the new grid
+      // After a short delay, fade in the new/restarted grid
       setTimeout(() => {
         setIsGridAnimating(false);
       }, 50);

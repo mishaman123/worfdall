@@ -12,7 +12,7 @@ const StartScreen: React.FC<StartScreenProps> = ({ onStart }) => {
         <h2>How to Play:</h2>
         <p>1. Swap adjacent letters to form words.</p>
         <p>2. Valid words will be cleared.</p>
-        <p>3. Clear all letters to complete the level.</p>
+        <p>3. Clear all words to complete the level.</p>
       </div>
       <button className="start-button" onClick={onStart}>
         Start Game

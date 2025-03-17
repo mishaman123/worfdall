@@ -21,6 +21,23 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
   const [currentDebugStep, setCurrentDebugStep] = useState<number>(0);
   const [showDebugControls, setShowDebugControls] = useState<boolean>(false);
 
+  // Track positions of previously placed word pairs and positions below them
+  const [previousWordPositions, setPreviousWordPositions] = useState<Set<string>>(new Set());
+
+  // Convert a position to a string key for the Set
+  const positionToKey = (row: number, col: number): string => {
+    return `${row}-${col}`;
+  };
+
+  // Get all positions below a given position
+  const getPositionsBelow = (row: number, col: number, gridSize: number): string[] => {
+    const positions: string[] = [];
+    for (let r = row + 1; r < gridSize; r++) {
+      positions.push(positionToKey(r, col));
+    }
+    return positions;
+  };
+
   // Add event listener for Escape key
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -118,7 +135,8 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
     row: number,
     col: number,
     isHorizontal: boolean,
-    isFirstPair: boolean
+    isFirstPair: boolean,
+    previousPositions?: Set<string>
   ): boolean => {
     const gridSize = grid.length;
     
@@ -141,6 +159,9 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
     // For subsequent pairs, we need to check if the word overlaps with existing letters
     let hasOverlap = false;
     
+    // For subsequent pairs, we also need to check if at least one position overlaps with previous word positions or positions below them
+    let hasOverlapWithPreviousPositions = false;
+    
     for (let i = 0; i < word.length; i++) {
       const checkRow = isHorizontal ? row : row + i;
       const checkCol = isHorizontal ? col + i : col;
@@ -148,6 +169,11 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
       // If this position already has a letter, check if it's the same as the word's letter
       if (grid[checkRow][checkCol] !== ' ') {
         hasOverlap = true;
+      }
+      
+      // Check if this position overlaps with previous word positions or positions below them
+      if (previousPositions && previousPositions.has(positionToKey(checkRow, checkCol))) {
+        hasOverlapWithPreviousPositions = true;
       }
       
       // Check if this position is supported by gravity
@@ -181,6 +207,11 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
       if (supportCount < word.length) {
         return false; // Not all positions have support
       }
+    }
+    
+    // For subsequent pairs, require overlap with existing letters AND with previous word positions or positions below them
+    if (!isFirstPair && previousPositions && previousPositions.size > 0) {
+      return hasOverlap && hasOverlapWithPreviousPositions;
     }
     
     return hasOverlap;
@@ -458,7 +489,8 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
     word1: string,
     word2: string,
     isHorizontal: boolean,
-    isFirstPair: boolean
+    isFirstPair: boolean,
+    currentPreviousPositions?: Set<string>
   ): { 
     success: boolean; 
     newGrid: string[][]; 
@@ -489,8 +521,10 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
         const minStartColShorter = startColLonger;
         const startColShorter = Math.floor(Math.random() * (maxStartColShorter - minStartColShorter + 1)) + minStartColShorter;
         
-        // Place at the bottom of the grid
-        const rowLonger = gridSize - 1;
+        // Place at a random row position in the bottom half of the grid, not always at the very bottom
+        const maxRow = gridSize - 1;
+        const minRow = Math.floor(gridSize / 2); // Start from middle of grid
+        const rowLonger = Math.floor(Math.random() * (maxRow - minRow + 1)) + minRow;
         const rowShorter = rowLonger - 1;
         
         console.log(`[placePair] Placing first pair horizontally: ${shorterWord} at (${rowShorter}, ${startColShorter}), ${longerWord} at (${rowLonger}, ${startColLonger})`);
@@ -573,14 +607,40 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
           return { success: false, newGrid: grid };
         }
       } else {
-        // For vertical orientation, place both words with their bottom letters at the bottom of the grid
+        // For vertical orientation, place both words with more varied position, not always at the bottom of the grid
         const maxCol = gridSize - 2; // Leave space for two words side by side
-        const col1 = Math.floor(Math.random() * maxCol);
-        const col2 = col1 + 1;
         
-        // Calculate rows so that bottom letters are at the bottom of the grid
-        const row1 = gridSize - word1.length;
-        const row2 = gridSize - word2.length;
+        // To avoid constantly using the first columns, choose starting columns randomly
+        const startCol = Math.floor(Math.random() * (maxCol - 1));
+        const possibleCols = [];
+        
+        // Create an array of possible column positions
+        for (let i = 0; i < maxCol; i++) {
+          if (i !== startCol && i !== startCol + 1) { // Avoid using same column twice
+            possibleCols.push(i);
+          }
+        }
+        
+        // Randomly select two columns with some spacing between them
+        let col1, col2;
+        if (Math.random() < 0.5) {
+          col1 = startCol;
+          col2 = startCol + 1 + Math.floor(Math.random() * 2); // 1-2 columns away
+          if (col2 >= gridSize) col2 = startCol - 1; // Wrap around if needed
+        } else {
+          col2 = startCol;
+          col1 = startCol + 1 + Math.floor(Math.random() * 2); // 1-2 columns away
+          if (col1 >= gridSize) col1 = startCol - 1; // Wrap around if needed
+        }
+        
+        // Calculate rows with some randomness
+        const maxPossibleRow1 = gridSize - word1.length;
+        const maxPossibleRow2 = gridSize - word2.length;
+        
+        // Choose rows in the lower half of the grid, but with randomness
+        const minRow = Math.floor(gridSize / 2); // Bottom half of grid
+        const row1 = Math.floor(Math.random() * (maxPossibleRow1 - minRow + 1)) + minRow;
+        const row2 = Math.floor(Math.random() * (maxPossibleRow2 - minRow + 1)) + minRow;
         
         console.log(`[placePair] Placing first pair vertically: ${word1} at (${row1}, ${col1}), ${word2} at (${row2}, ${col2})`);
         
@@ -657,14 +717,65 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
       
       // Try random positions with a focus on creating overlaps
       const maxAttempts = 1000;
+      
+      // Create a "heat map" of column densities to discourage placing words in columns that already have many letters
+      const columnDensity = new Array(gridSize).fill(0);
+      
+      // Calculate current column densities
+      for (let col = 0; col < gridSize; col++) {
+        for (let row = 0; row < gridSize; row++) {
+          if (grid[row][col] !== ' ') {
+            columnDensity[col]++;
+          }
+        }
+      }
+      
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
         if (attempt % 100 === 0) {
           console.log(`[placePair] Placement attempt ${attempt}/${maxAttempts}`);
         }
         
-        // Generate random positions
-        const row1 = Math.floor(Math.random() * (gridSize - (isHorizontal ? 1 : word1.length)));
-        const col1 = Math.floor(Math.random() * (gridSize - (isHorizontal ? word1.length : 1)));
+        // Generate random positions with bias away from dense columns
+        const columnWeights = columnDensity.map(density => 1 / (density + 1)); // Inverse weight
+        const totalWeight = columnWeights.reduce((sum, weight) => sum + weight, 0);
+        
+        // Select a column with weighted randomness (lower density columns are preferred)
+        let randomWeight = Math.random() * totalWeight;
+        let col1 = 0;
+        let weightSum = 0;
+        
+        for (let i = 0; i < columnWeights.length; i++) {
+          weightSum += columnWeights[i];
+          if (randomWeight <= weightSum) {
+            col1 = i;
+            break;
+          }
+        }
+        
+        // Adjust the column if it would cause the word to go out of bounds
+        col1 = Math.min(col1, gridSize - (isHorizontal ? word1.length : 1));
+        
+        // Generate a random row with preference for rows away from the bottom
+        const rowWeight = new Array(gridSize).fill(0).map((_, i) => {
+          // Higher weight for rows further from the bottom
+          return Math.max(1, gridSize - i - 3); // -3 to still allow some words at the bottom if needed
+        });
+        const totalRowWeight = rowWeight.reduce((sum, weight) => sum + weight, 0);
+        
+        let randomRowWeight = Math.random() * totalRowWeight;
+        let row1 = 0;
+        let rowWeightSum = 0;
+        
+        for (let i = 0; i < rowWeight.length; i++) {
+          rowWeightSum += rowWeight[i];
+          if (randomRowWeight <= rowWeightSum) {
+            row1 = i;
+            break;
+          }
+        }
+        
+        // Adjust the row if it would cause the word to go out of bounds
+        row1 = Math.min(row1, gridSize - (isHorizontal ? 1 : word1.length));
         
         let row2, col2;
         if (isHorizontal) {
@@ -705,9 +816,9 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
           }
         }
         
-        // Check if positions are valid (must have at least one overlap with existing letters)
-        if (!isValidPosition(grid, word1, row1, col1, isHorizontal, false)) continue;
-        if (!isValidPosition(grid, word2, row2, col2, isHorizontal, false)) continue;
+        // Check if positions are valid (must have at least one overlap with existing letters AND with previous word positions or positions below them)
+        if (!isValidPosition(grid, word1, row1, col1, isHorizontal, false, currentPreviousPositions)) continue;
+        if (!isValidPosition(grid, word2, row2, col2, isHorizontal, false, currentPreviousPositions)) continue;
         
         console.log(`[placePair] Found valid positions - word1: ${word1} at (${row1}, ${col1}), word2: ${word2} at (${row2}, ${col2})`);
         
@@ -882,6 +993,10 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
       const gridSize = 20;
       let grid = createEmptyGrid(gridSize);
       
+      // Reset previous word positions
+      setPreviousWordPositions(new Set());
+      let currentPreviousPositions = new Set<string>();
+      
       // Add initial empty grid to debug steps
       newDebugSteps.push({
         description: "Initial empty grid",
@@ -917,7 +1032,7 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
         } | null = null;
         
         // For the first pair, always place horizontally
-        // For subsequent pairs, randomly decide whether to try horizontal or vertical first (50/50 chance)
+        // For subsequent pairs, use the 65/35 orientation approach (favoring horizontal)
         if (isFirstPair) {
           // Always try horizontal for the first pair
           console.log(`[generateLevel] Trying horizontal orientation for first pair`);
@@ -936,14 +1051,14 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
             console.log(`[generateLevel] ERROR: Failed to place first pair horizontally`);
           }
         } else {
-          // For subsequent pairs, use the 50/50 random orientation approach
-          const tryHorizontalFirst = Math.random() < 0.5;
+          // For subsequent pairs, use the 65/35 orientation approach (favoring horizontal)
+          const tryHorizontalFirst = Math.random() < 0.65;
           
           if (tryHorizontalFirst) {
             // Try horizontal first
             console.log(`[generateLevel] Trying horizontal orientation for pair ${pairIndex + 1}`);
             const { success: horizontalSuccess, newGrid: horizontalGrid, debugInfo: horizontalDebugInfo } = 
-              placePair(grid, word1, word2, true, isFirstPair);
+              placePair(grid, word1, word2, true, isFirstPair, currentPreviousPositions);
             
             if (horizontalSuccess && horizontalDebugInfo) {
               grid = horizontalGrid;
@@ -957,7 +1072,7 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
               // Try vertical
               console.log(`[generateLevel] Trying vertical orientation for pair ${pairIndex + 1}`);
               const { success: verticalSuccess, newGrid: verticalGrid, debugInfo: verticalDebugInfo } = 
-                placePair(grid, word1, word2, false, isFirstPair);
+                placePair(grid, word1, word2, false, isFirstPair, currentPreviousPositions);
               
               if (verticalSuccess && verticalDebugInfo) {
                 grid = verticalGrid;
@@ -973,7 +1088,7 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
             // Try vertical first
             console.log(`[generateLevel] Trying vertical orientation for pair ${pairIndex + 1}`);
             const { success: verticalSuccess, newGrid: verticalGrid, debugInfo: verticalDebugInfo } = 
-              placePair(grid, word1, word2, false, isFirstPair);
+              placePair(grid, word1, word2, false, isFirstPair, currentPreviousPositions);
             
             if (verticalSuccess && verticalDebugInfo) {
               grid = verticalGrid;
@@ -987,7 +1102,7 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
               // Try horizontal
               console.log(`[generateLevel] Trying horizontal orientation for pair ${pairIndex + 1}`);
               const { success: horizontalSuccess, newGrid: horizontalGrid, debugInfo: horizontalDebugInfo } = 
-                placePair(grid, word1, word2, true, isFirstPair);
+                placePair(grid, word1, word2, true, isFirstPair, currentPreviousPositions);
               
               if (horizontalSuccess && horizontalDebugInfo) {
                 grid = horizontalGrid;
@@ -1004,7 +1119,7 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
         
         if (!placementSuccess) {
           console.log(`[generateLevel] ERROR: Failed to place pair ${pairIndex + 1}`);
-          setError(`Failed to place word pair: ${word1}, ${word2}. Try different words or fewer pairs.`);
+          setError(`Failed to place word pair: ${word1}, ${word2}`);
           setIsGenerating(false);
           return;
         }
@@ -1012,47 +1127,47 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
         // Add debug steps for this pair placement
         if (placementDetails) {
           // Step 1: Show where the words will be placed (highlighted)
-          if (placementDetails!.preShiftGrid && !isFirstPair) {
+          if (placementDetails.preShiftGrid && !isFirstPair) {
             // For subsequent pairs, show the grid before shifting letters upward
             const newWordPositions: Array<{row: number, col: number}> = [];
             
             // Calculate positions for word1
-            if (placementDetails!.isHorizontal) {
+            if (placementDetails.isHorizontal) {
               for (let i = 0; i < word1.length; i++) {
                 newWordPositions.push({ 
-                  row: placementDetails!.word1Positions[0].row, 
-                  col: placementDetails!.word1Positions[0].col + i 
+                  row: placementDetails.word1Positions[0].row, 
+                  col: placementDetails.word1Positions[0].col + i 
                 });
               }
             } else {
               for (let i = 0; i < word1.length; i++) {
                 newWordPositions.push({ 
-                  row: placementDetails!.word1Positions[0].row + i, 
-                  col: placementDetails!.word1Positions[0].col 
+                  row: placementDetails.word1Positions[0].row + i, 
+                  col: placementDetails.word1Positions[0].col 
                 });
               }
             }
             
             // Calculate positions for word2
-            if (placementDetails!.isHorizontal) {
+            if (placementDetails.isHorizontal) {
               for (let i = 0; i < word2.length; i++) {
                 newWordPositions.push({ 
-                  row: placementDetails!.word2Positions[0].row, 
-                  col: placementDetails!.word2Positions[0].col + i 
+                  row: placementDetails.word2Positions[0].row, 
+                  col: placementDetails.word2Positions[0].col + i 
                 });
               }
             } else {
               for (let i = 0; i < word2.length; i++) {
                 newWordPositions.push({ 
-                  row: placementDetails!.word2Positions[0].row + i, 
-                  col: placementDetails!.word2Positions[0].col 
+                  row: placementDetails.word2Positions[0].row + i, 
+                  col: placementDetails.word2Positions[0].col 
                 });
               }
             }
             
             newDebugSteps.push({
               description: `Pair ${pairIndex + 1}: ${word1}, ${word2} - Before shifting letters upward`,
-              grid: JSON.parse(JSON.stringify(placementDetails!.preShiftGrid)),
+              grid: JSON.parse(JSON.stringify(placementDetails.preShiftGrid)),
               highlightPositions: newWordPositions.map(pos => ({
                 row: pos.row,
                 col: pos.col,
@@ -1061,25 +1176,36 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
             });
           }
           
-          const allPositions = [...placementDetails!.word1Positions, ...placementDetails!.word2Positions];
+          // Create allPositions array inside the placementDetails check
+          const allPositions = [...placementDetails.word1Positions, ...placementDetails.word2Positions];
+          
+          // Add debug step for planned positions
           newDebugSteps.push({
-            description: `Pair ${pairIndex + 1}: ${word1}, ${word2} - Planned positions (${placementDetails!.isHorizontal ? 'horizontal' : 'vertical'})`,
-            grid: JSON.parse(JSON.stringify(placementDetails!.preGravityGrid)),
-            highlightPositions: allPositions.map(pos => ({
-              row: pos.row,
-              col: pos.col,
-              color: placementDetails!.word1Positions.some(p => p.row === pos.row && p.col === pos.col) ? 'blue' : 'green'
-            }))
+            description: `Pair ${pairIndex + 1}: ${word1}, ${word2} - Planned positions (${placementDetails.isHorizontal ? 'horizontal' : 'vertical'})`,
+            grid: JSON.parse(JSON.stringify(placementDetails.preGravityGrid)),
+            highlightPositions: allPositions.map(pos => {
+              // Check if this position is in word1Positions
+              // Use a type assertion to tell TypeScript that placementDetails is not null
+              const details = placementDetails as NonNullable<typeof placementDetails>;
+              const isWord1Position = details.word1Positions.some(
+                p => p.row === pos.row && p.col === pos.col
+              );
+              return {
+                row: pos.row,
+                col: pos.col,
+                color: isWord1Position ? 'blue' : 'green'
+              };
+            })
           });
           
           // Step 2: Show the grid after placement but before gravity (with swapped letters highlighted)
-          if (placementDetails!.swappedPositions) {
+          if (placementDetails.swappedPositions) {
             newDebugSteps.push({
               description: `Pair ${pairIndex + 1}: Letters swapped between positions`,
-              grid: JSON.parse(JSON.stringify(placementDetails!.preGravityGrid)),
+              grid: JSON.parse(JSON.stringify(placementDetails.preGravityGrid)),
               highlightPositions: [
-                { row: placementDetails!.swappedPositions.pos1.row, col: placementDetails!.swappedPositions.pos1.col, color: 'orange' },
-                { row: placementDetails!.swappedPositions.pos2.row, col: placementDetails!.swappedPositions.pos2.col, color: 'orange' }
+                { row: placementDetails.swappedPositions.pos1.row, col: placementDetails.swappedPositions.pos1.col, color: 'orange' },
+                { row: placementDetails.swappedPositions.pos2.row, col: placementDetails.swappedPositions.pos2.col, color: 'orange' }
               ]
             });
           }
@@ -1101,44 +1227,55 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
         grid.forEach((row, rowIndex) => {
           console.log(`Row ${rowIndex}: ${row.join('')}`);
         });
+        
+        // If placement was successful, update the previous word positions
+        if (placementSuccess && placementDetails) {
+          // Get all positions from the current word pair
+          const allPositions = [...placementDetails.word1Positions, ...placementDetails.word2Positions];
+          
+          // Create a new set for the updated positions
+          const newPreviousPositions = new Set<string>(currentPreviousPositions);
+          
+          // Add the current positions and all positions below them
+          allPositions.forEach(pos => {
+            newPreviousPositions.add(positionToKey(pos.row, pos.col));
+            
+            // Add all positions below this position
+            getPositionsBelow(pos.row, pos.col, gridSize).forEach(belowPos => {
+              newPreviousPositions.add(belowPos);
+            });
+          });
+          
+          // Update the current previous positions
+          currentPreviousPositions = newPreviousPositions;
+          setPreviousWordPositions(newPreviousPositions);
+          
+          console.log(`[generateLevel] Updated previous word positions, now tracking ${newPreviousPositions.size} positions`);
+        }
       }
       
-      // Final gravity application is redundant but kept for clarity
-      console.log(`[generateLevel] Applying final gravity to grid`);
-      grid = applyGravity(grid);
+      // Create the level object
+      const validWords = wordPairs.flat();
+      const newLevel: Level = {
+        id: Date.now(),
+        name: `Custom Level ${Date.now()}`,
+        theme: "Custom",
+        grid: grid,
+        validWords: validWords
+      };
       
-      // Add final grid to debug steps
-      newDebugSteps.push({
-        description: "Final grid",
-        grid: JSON.parse(JSON.stringify(grid))
-      });
+      console.log(`[generateLevel] Level generation complete with ${validWords.length} valid words`);
       
-      // Debug: Print the grid after applying gravity
-      console.log(`[generateLevel] Final grid after applying gravity:`);
-      grid.forEach((row, rowIndex) => {
-        console.log(`Row ${rowIndex}: ${row.join('')}`);
-      });
-      
-      console.log('[generateLevel] Level generation complete');
-      
-      // Set debug steps and show controls
+      // Set debug steps
       setDebugSteps(newDebugSteps);
       setCurrentDebugStep(0);
       setShowDebugControls(true);
       
-      // Create the level object
-      const newLevel: Level = {
-        id: 0, // This will be set by the user when adding to levels.ts
-        name: "Generated Level",
-        theme: "Generated Theme",
-        grid: grid,
-        validWords: words
-      };
-      
+      // Set the generated level
       setGeneratedLevel(newLevel);
-    } catch (err) {
-      console.error('[generateLevel] Error generating level:', err);
-      setError(`Error generating level: ${err instanceof Error ? err.message : String(err)}`);
+    } catch (error) {
+      console.error("Error generating level:", error);
+      setError("An error occurred while generating the level. Please try again.");
     } finally {
       setIsGenerating(false);
     }
@@ -1159,6 +1296,7 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
     return `export const levelX: Level = {
   id: X, // Replace with the next level number
   name: "Level X", // Replace with appropriate name
+  theme: "Custom",
   grid: [
 ${gridString}
   ],
@@ -1224,6 +1362,21 @@ PEACH"
         <div className="result-section">
           <h3>Generated Level</h3>
           
+          <div className="grid-preview">
+            {generatedLevel.grid.map((row, rowIndex) => (
+              <div key={rowIndex} className="grid-row">
+                {row.map((cell, colIndex) => (
+                  <div 
+                    key={`${rowIndex}-${colIndex}`} 
+                    className={`grid-cell ${cell !== ' ' ? 'filled' : ''}`}
+                  >
+                    {cell}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+          
           {showDebugControls && debugSteps.length > 0 && (
             <div className="debug-controls">
               <h4>Debug Visualization</h4>
@@ -1271,21 +1424,6 @@ PEACH"
               </div>
             </div>
           )}
-          
-          <div className="grid-preview">
-            {generatedLevel.grid.map((row, rowIndex) => (
-              <div key={rowIndex} className="grid-row">
-                {row.map((cell, colIndex) => (
-                  <div 
-                    key={`${rowIndex}-${colIndex}`} 
-                    className={`grid-cell ${cell !== ' ' ? 'filled' : ''}`}
-                  >
-                    {cell}
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
           
           <div className="code-output">
             <h4>Code to Copy:</h4>

@@ -16,6 +16,8 @@ interface GridCell {
   invalidSwap?: boolean;
   isEmpty: boolean;
   singleWordFound?: boolean;
+  fadingOut?: boolean;
+  wasSwapped?: boolean;
 }
 
 interface GameGridProps {
@@ -232,6 +234,8 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete }) => {
         newGrid[i][j].invalidSwap = false;
         newGrid[i][j].validWord = false;
         newGrid[i][j].singleWordFound = false;
+        newGrid[i][j].fadingOut = false;
+        newGrid[i][j].wasSwapped = false;
       }
     }
     setGrid(newGrid);
@@ -501,6 +505,10 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete }) => {
     fadeGrid[row1][col1].selectedToSwap = true;
     fadeGrid[row2][col2].selectedToSwap = true;
     
+    // Mark these cells as part of the original swap
+    fadeGrid[row1][col1].wasSwapped = true;
+    fadeGrid[row2][col2].wasSwapped = true;
+    
     // Ensure selected state is removed to avoid animation conflicts
     fadeGrid[row1][col1].selected = false;
     fadeGrid[row2][col2].selected = false;
@@ -716,24 +724,136 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete }) => {
           
           // Function to handle fade out and fall after all animations
           const finishAnimation = () => {
+            // Extended pause before fade-out to give players more time to see the completed words
             setTimeout(() => {
-              const fadeOutGrid = JSON.parse(JSON.stringify(highlightGrid));
-              wordPositions.forEach(pos => {
-                fadeOutGrid[pos.row][pos.col].visible = false;
-              });
-              setGrid(fadeOutGrid);
+              const fadingGrid = JSON.parse(JSON.stringify(highlightGrid));
               
-              setTimeout(() => {
-                const newGrid = makeFall(fadeOutGrid);
-                setGrid(newGrid);
-                const newRemainingLetters = remainingLetters - wordPositions.length;
-                setRemainingLetters(newRemainingLetters);
-                if (newRemainingLetters === 0) {
-                  console.log("All letters cleared! Level complete!");
-                  setTimeout(onLevelComplete, 1000);
+              // Add all cells that were part of a valid word to the wordPositions array if they aren't already
+              // This ensures swapped cells that are part of a valid word are included
+              const allPositions = [...wordPositions];
+
+              // Find all cells that were part of the original swap and mark them for fading
+              for (let i = 0; i < fadingGrid.length; i++) {
+                for (let j = 0; j < fadingGrid[i].length; j++) {
+                  // Reset animation states for all cells
+                  fadingGrid[i][j].selectedToSwap = false;
+                  fadingGrid[i][j].swapping = false;
+                  
+                  // If this cell was part of the original swap but isn't in wordPositions,
+                  // add it to the list of cells that need to be faded out
+                  if (fadingGrid[i][j].wasSwapped && 
+                      !wordPositions.some(pos => pos.row === i && pos.col === j)) {
+                    allPositions.push({ row: i, col: j });
+                  }
                 }
-              }, 300); 
-            }, 1200); // Extended pause before fade-out to give players more time to see the completed words
+              }
+              
+              // Combine horizontal and vertical words into a sequence for fading
+              const allWords: { row: number, col: number }[][] = [...horizontalWords, ...verticalWords];
+              
+              // If no words were identified, use all positions as a single word
+              if (allWords.length === 0 && allPositions.length > 0) {
+                allWords.push(allPositions);
+              }
+              
+              console.log("Words to fade sequentially:", allWords.length);
+              
+              // Process words one at a time
+              const fadeWords = (wordIndex: number) => {
+                if (wordIndex >= allWords.length) {
+                  // All words have faded, apply gravity effect
+                  setTimeout(() => {
+                    const invisibleGrid = JSON.parse(JSON.stringify(fadingGrid));
+                    
+                    // Mark all processed positions as invisible
+                    allPositions.forEach(pos => {
+                      invisibleGrid[pos.row][pos.col].visible = false;
+                    });
+                    
+                    setGrid(invisibleGrid);
+                    
+                    // Apply gravity effect
+                    setTimeout(() => {
+                      const newGrid = makeFall(invisibleGrid);
+                      setGrid(newGrid);
+                      const newRemainingLetters = remainingLetters - wordPositions.length;
+                      setRemainingLetters(newRemainingLetters);
+                      if (newRemainingLetters === 0) {
+                        console.log("All letters cleared! Level complete!");
+                        setTimeout(onLevelComplete, 1000);
+                      }
+                    }, 100);
+                  }, 130);
+                  return;
+                }
+                
+                const currentWord = allWords[wordIndex];
+                console.log(`Fading word ${wordIndex + 1} of ${allWords.length}`);
+                
+                // Create new grid for this word's fade
+                const wordFadingGrid = JSON.parse(JSON.stringify(fadingGrid));
+                
+                // Track which positions belong to various word groups
+                const fadedPositions = new Set(); // Already faded words
+                const currentPositions = new Set(); // Current word to fade
+                const futurePositions = new Set(); // Words that will fade later
+                
+                // Categorize all positions
+                for (let i = 0; i < allWords.length; i++) {
+                  allWords[i].forEach(pos => {
+                    const posKey = `${pos.row}-${pos.col}`;
+                    if (i < wordIndex) {
+                      fadedPositions.add(posKey);
+                    } else if (i === wordIndex) {
+                      currentPositions.add(posKey);
+                    } else {
+                      futurePositions.add(posKey);
+                    }
+                  });
+                }
+                
+                // Apply appropriate flags to each cell based on its category
+                for (let i = 0; i < wordFadingGrid.length; i++) {
+                  for (let j = 0; j < wordFadingGrid[i].length; j++) {
+                    const posKey = `${i}-${j}`;
+                    
+                    // Already faded words should remain invisible
+                    if (fadedPositions.has(posKey)) {
+                      wordFadingGrid[i][j].visible = false;
+                    }
+                    // Current word gets fadingOut=true but stays validWord=true to remain green while fading
+                    else if (currentPositions.has(posKey)) {
+                      wordFadingGrid[i][j].validWord = true;
+                      wordFadingGrid[i][j].fadingOut = true;
+                    }
+                    // Future words should remain green
+                    else if (futurePositions.has(posKey)) {
+                      wordFadingGrid[i][j].validWord = true;
+                    }
+                  }
+                }
+                
+                setGrid(wordFadingGrid);
+                
+                // After this word's fade animation completes, mark it as invisible and move to next word
+                setTimeout(() => {
+                  // Mark current word as invisible before moving to next word
+                  const invisibleCurrentWord = JSON.parse(JSON.stringify(wordFadingGrid));
+                  currentWord.forEach(pos => {
+                    invisibleCurrentWord[pos.row][pos.col].visible = false;
+                  });
+                  setGrid(invisibleCurrentWord);
+                  
+                  // Small delay before moving to next word
+                  setTimeout(() => {
+                    fadeWords(wordIndex + 1);
+                  }, 100);
+                }, 500);
+              };
+              
+              // Start fading the first word
+              fadeWords(0);
+            }, 1200);
           };
           
           // Start the cascading process
@@ -823,13 +943,22 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete }) => {
                         ${cell.shaking ? 'shaking' : ''} 
                         ${cell.validWord ? 'valid-word' : ''} 
                         ${cell.singleWordFound ? 'single-word-found' : ''}
+                        ${cell.fadingOut ? 'fading-out' : ''}
                         ${cell.invalidSwap ? 'invalid-swap' : ''}`}
                       initial={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
+                      exit={{ 
+                        opacity: 0,
+                        transition: { duration: 0.3 } 
+                      }}
+                      animate={
+                        cell.swapping 
+                          ? { scale: [1, 0, 0, 1] } 
+                          : {}
+                      }
                       onClick={() => handleLetterClick(rowIndex, colIndex)}
                       layout="position"
-                      animate={cell.swapping ? { scale: [1, 0, 0, 1] } : {}}
-                      transition={cell.swapping 
+                      transition={
+                        cell.swapping 
                         ? { 
                             duration: 0.8,
                             ease: "easeInOut",
