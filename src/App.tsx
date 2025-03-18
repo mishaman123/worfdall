@@ -37,7 +37,6 @@ function App() {
         event.target instanceof HTMLTextAreaElement;
       
       if (event.key === 'l' && !isInputElement && !showLevelCreator) {
-        console.log('Level creator opened');
         setShowLevelCreator(true);
       }
     };
@@ -60,17 +59,13 @@ function App() {
   
   // Handle level completion
   const handleLevelComplete = () => {
-    console.log(`Level ${levels[currentLevelIndex].id} completed!`);
-    
     // Add a small delay to ensure all animations are complete
     setTimeout(() => {
       if (currentLevelIndex < levels.length - 1) {
         // More levels to play
-        console.log(`Transitioning to level ${levels[currentLevelIndex + 1].id}`);
         setGameState('transition');
       } else {
         // Game complete
-        console.log('All levels completed! Game over!');
         setGameState('complete');
       }
     }, 500);
@@ -100,7 +95,6 @@ function App() {
     // After fade out, update or restart the level
     setTimeout(() => {
       if (isRestart) {
-        console.log(`Restarting level ${levels[levelIndex].id}`);
         // For restart, we don't need to change the currentLevelIndex
         // Just ensure we're in playing state
         setGameState('playing');
@@ -108,7 +102,6 @@ function App() {
         // For level switch, update the level index
         setCurrentLevelIndex(levelIndex);
         setGameState('playing');
-        console.log(`Switched to level ${levels[levelIndex].id}`);
       }
       
       // Reset hints back to 3 when switching or restarting level

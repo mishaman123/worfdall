@@ -31,12 +31,10 @@ const Hint: React.FC<HintProps> = ({
 
   const handleHintClick = () => {
     if (hintsRemaining <= 0) {
-      console.log("No hints remaining");
       return;
     }
     
     if (isThinking) {
-      console.log("Already generating hint...");
       return;
     }
     
@@ -45,7 +43,6 @@ const Hint: React.FC<HintProps> = ({
     
     // Show "thinking" state
     setIsThinking(true);
-    console.log("Generating hint...");
     
     try {
       // If we're in header mode but don't have grid data,
@@ -54,13 +51,10 @@ const Hint: React.FC<HintProps> = ({
         const gameGrid = typeof window !== 'undefined' ? (window as any).currentGameGrid : null;
         
         if (!gameGrid) {
-          console.log("Header mode - no game grid available yet");
           setLastError("Game grid not ready. Please try again in a moment.");
           setIsThinking(false);
           return;
         }
-        
-        console.log("Header mode - found game grid, generating hint");
         
         try {
           const hint = generateSwapHintFromCurrentGrid(
@@ -70,17 +64,15 @@ const Hint: React.FC<HintProps> = ({
           );
           
           if (!hint) {
-            console.log("No valid hint found");
             setLastError("Sorry, no hint available for this level.");
             setIsThinking(false);
           } else {
-            console.log("Hint generated successfully:", hint);
             onUseHint(); // Decrement hint count
             onHintReceived(hint); // Send hint to parent
             setIsThinking(false);
           }
         } catch (error) {
-          console.error("Error generating hint from header:", error);
+          
           setLastError("Error generating hint. Please try again.");
           setIsThinking(false);
         }
@@ -92,7 +84,6 @@ const Hint: React.FC<HintProps> = ({
       setTimeout(() => {
         try {
           // We now use the current grid state instead of the level's original grid
-          console.log("Generating hint from current grid state");
           
           if (!currentGrid) {
             throw new Error("No current grid data available");
@@ -105,25 +96,23 @@ const Hint: React.FC<HintProps> = ({
           );
           
           if (!hint) {
-            console.log("No valid hint found");
             setLastError("Sorry, no hint available for this level.");
             onHintReceived(null);
           } else {
-            console.log("Hint generated successfully:", hint);
             onUseHint(); // Decrement hint count
             onHintReceived(hint); // Send hint to parent
           }
           
           setIsThinking(false);
         } catch (error) {
-          console.error("Error generating hint:", error);
+          
           setLastError("Error generating hint. Please try again.");
           setIsThinking(false);
           onHintReceived(null);
         }
       }, 500); // Half-second delay for feedback
     } catch (error) {
-      console.error("Error in hint generation:", error);
+      
       setLastError("Error generating hint. Please try again.");
       setIsThinking(false);
       onHintReceived(null);

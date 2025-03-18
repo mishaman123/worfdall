@@ -1274,7 +1274,7 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
       // Set the generated level
       setGeneratedLevel(newLevel);
     } catch (error) {
-      console.error("Error generating level:", error);
+      
       setError("An error occurred while generating the level. Please try again.");
     } finally {
       setIsGenerating(false);

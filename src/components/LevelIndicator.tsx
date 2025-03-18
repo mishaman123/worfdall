@@ -45,10 +45,6 @@ const LevelIndicator: React.FC<LevelIndicatorProps> = ({
   const handleLevelSelect = (levelIndex: number) => {
     if (onSwitchLevel) {
       // If clicking the current level, restart it
-      if (levelIndex === currentLevel - 1) {
-        console.log(`Restarting level ${levels[levelIndex].id}`);
-      }
-      
       // Always call onSwitchLevel to either switch or restart
       onSwitchLevel(levelIndex);
       setIsPanelOpen(false);
