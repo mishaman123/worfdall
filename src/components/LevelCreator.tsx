@@ -1046,7 +1046,7 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
               isHorizontal: true,
               ...horizontalDebugInfo
             };
-            console.log(`[generateLevel] Successfully placed first pair horizontally`);
+            (`[generateLevel] Successfully placed first pair horizontally`);
           } else {
             console.log(`[generateLevel] ERROR: Failed to place first pair horizontally`);
           }

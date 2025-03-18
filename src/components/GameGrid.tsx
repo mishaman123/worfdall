@@ -70,7 +70,6 @@ const generateGridFromLevel = (level: Level): { grid: GridCell[][], bounds: { mi
   
   // If no content found, return empty grid
   if (minRow > maxRow || minCol > maxCol) {
-    console.log("No visible content found in grid");
     return { grid: [[]], bounds: { minRow: 0, maxRow: 0, minCol: 0, maxCol: 0 } };
   }
   
@@ -85,9 +84,6 @@ const generateGridFromLevel = (level: Level): { grid: GridCell[][], bounds: { mi
     }
     trimmedGrid.push(row);
   }
-  
-  console.log(`Trimmed grid from ${fullGrid.length}x${fullGrid[0].length} to ${trimmedGrid.length}x${trimmedGrid[0].length}`);
-  console.log(`Content bounds: rows ${minRow}-${maxRow}, cols ${minCol}-${maxCol}`);
   
   return { grid: trimmedGrid, bounds: { minRow, maxRow, minCol, maxCol } };
 };
@@ -145,7 +141,6 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete, currentHint
   const [selectedCell, setSelectedCell] = useState<{ row: number, col: number } | null>(null);
   const [validWords, setValidWords] = useState<string[]>(() => {
     const words = level.validWords.map(word => word.toUpperCase());
-    console.log("Initialized valid words:", words);
     return words;
   });
   const [foundWords, setFoundWords] = useState<string[]>([]);
@@ -184,20 +179,16 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete, currentHint
       }
     }
     setRemainingLetters(visibleCount);
-    console.log(`Level loaded with ${visibleCount} visible letters`);
-    
-    // Update valid words
-    setValidWords(level.validWords.map(word => word.toUpperCase()));
   }, [level]);
 
   // For debugging
   useEffect(() => {
-    console.log("Valid words in state:", validWords);
+    // Debugging removed
   }, [validWords]);
 
   // For debugging remaining letters
   useEffect(() => {
-    console.log(`Remaining letters: ${remainingLetters}`);
+    // Debugging removed
     // Don't trigger level completion here
   }, [remainingLetters]);
 
@@ -216,17 +207,13 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete, currentHint
       }
     }
     
-    console.log(`Level completion check: Counted ${visibleCount} visible letters`);
-    
     // Only complete the level if there are truly no visible letters
     if (visibleCount === 0 && grid.length > 0) {
-      console.log("Level complete check: All letters cleared!");
       setTimeout(() => {
         onLevelComplete();
       }, 1000);
     } else if (visibleCount > 0 && remainingLetters === 0) {
       // Correct the count if there's a mismatch
-      console.log(`Correcting remaining letters count to ${visibleCount}`);
       setRemainingLetters(visibleCount);
     }
   }, [remainingLetters, grid, onLevelComplete]);
@@ -353,22 +340,15 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete, currentHint
           positions.push({ row, col: c });
         }
         
-        // Debug log
-        console.log(`Checking horizontal string: "${extractedString}" at row ${row}, cols ${startCol}-${endCol}`);
-        
         // Check if any valid word appears in the extracted string
         for (const validWord of validWords) {
           if (extractedString.includes(validWord)) {
-            console.log(`Found valid word "${validWord}" in "${extractedString}"`);
-            
             // Find the start and end positions of the valid word
             const startIndex = extractedString.indexOf(validWord);
             const endIndex = startIndex + validWord.length - 1;
             
             // Get the positions for just the valid word
             const validWordPositions = positions.slice(startIndex, startIndex + validWord.length);
-            
-            console.log(`Valid word positions: ${JSON.stringify(validWordPositions)}`);
             
             foundValidWords++;
             wordPositions.push(...validWordPositions);
@@ -404,22 +384,15 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete, currentHint
           positions.push({ row: r, col });
         }
         
-        // Debug log
-        console.log(`Checking vertical string: "${extractedString}" at col ${col}, rows ${startRow}-${endRow}`);
-        
         // Check if any valid word appears in the extracted string
         for (const validWord of validWords) {
           if (extractedString.includes(validWord)) {
-            console.log(`Found valid word "${validWord}" in "${extractedString}"`);
-            
             // Find the start and end positions of the valid word
             const startIndex = extractedString.indexOf(validWord);
             const endIndex = startIndex + validWord.length - 1;
             
             // Get the positions for just the valid word
             const validWordPositions = positions.slice(startIndex, startIndex + validWord.length);
-            
-            console.log(`Valid word positions: ${JSON.stringify(validWordPositions)}`);
             
             foundValidWords++;
             wordPositions.push(...validWordPositions);
@@ -437,10 +410,6 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete, currentHint
     checkVertical(row1, col1);
     checkHorizontal(row2, col2);
     checkVertical(row2, col2);
-    
-    // Debug log
-    console.log("Found valid words:", foundValidWords);
-    console.log("Word positions:", wordPositions);
     
     return { 
       isValid: foundValidWords >= 2, // Require at least two valid words
@@ -591,9 +560,6 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete, currentHint
           const uniqueRows = Array.from(rows).sort((a, b) => a - b);
           const uniqueCols = Array.from(cols).sort((a, b) => a - b);
           
-          console.log("Unique rows:", uniqueRows);
-          console.log("Unique columns:", uniqueCols);
-          
           // For each row, check if it contains at least 3 consecutive positions
           uniqueRows.forEach(row => {
             // Get all positions in this row
@@ -612,7 +578,6 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete, currentHint
               
               if (isConsecutive) {
                 horizontalWords.push(positionsInRow);
-                console.log("Found horizontal word in row", row, ":", positionsInRow);
               }
             }
           });
@@ -635,19 +600,14 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete, currentHint
               
               if (isConsecutive) {
                 verticalWords.push(positionsInCol);
-                console.log("Found vertical word in column", col, ":", positionsInCol);
               }
             }
           });
           
           // If we couldn't identify any words, use the original positions
           if (horizontalWords.length === 0 && verticalWords.length === 0) {
-            console.log("No clear words identified, using original positions");
             horizontalWords.push(wordPositions);
           }
-          
-          console.log("Horizontal words:", horizontalWords);
-          console.log("Vertical words:", verticalWords);
           
           // Keep track of all highlighted positions
           const highlightedPositions: { row: number, col: number }[] = [];
@@ -663,7 +623,6 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete, currentHint
               }
               
               const word = horizontalWords[wordIndex];
-              console.log("Processing horizontal word:", word);
               
               // Process each letter in this word
               let letterIndex = 0;
@@ -711,7 +670,6 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete, currentHint
               }
               
               const word = verticalWords[wordIndex];
-              console.log("Processing vertical word:", word);
               
               // Process each letter in this word
               let letterIndex = 0;
@@ -788,8 +746,6 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete, currentHint
                 allWords.push(allPositions);
               }
               
-              console.log("Words to fade sequentially:", allWords.length);
-              
               // Process words one at a time
               const fadeWords = (wordIndex: number) => {
                 if (wordIndex >= allWords.length) {
@@ -811,7 +767,6 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete, currentHint
                       const newRemainingLetters = remainingLetters - wordPositions.length;
                       setRemainingLetters(newRemainingLetters);
                       if (newRemainingLetters === 0) {
-                        console.log("All letters cleared! Level complete!");
                         setTimeout(onLevelComplete, 1000);
                       }
                     }, 100);
@@ -820,7 +775,6 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete, currentHint
                 }
                 
                 const currentWord = allWords[wordIndex];
-                console.log(`Fading word ${wordIndex + 1} of ${allWords.length}`);
                 
                 // Create new grid for this word's fade
                 const wordFadingGrid = JSON.parse(JSON.stringify(fadingGrid));
@@ -938,17 +892,13 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete, currentHint
         }
       }
       
-      console.log(`After falling: counted ${visibleCount} visible letters`);
-      
       // If count doesn't match remainingLetters, update it
       if (visibleCount !== remainingLetters) {
-        console.log(`Correcting remaining letters count from ${remainingLetters} to ${visibleCount}`);
         setRemainingLetters(visibleCount);
       }
       
       // If no visible letters remain, ensure level completion is triggered
       if (visibleCount === 0 && newGrid.length > 0) {
-        console.log("No visible letters remain after falling. Level complete!");
         setRemainingLetters(0);
       }
     }, 500);
@@ -978,11 +928,8 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete, currentHint
   // Handle hint received from the parent
   const handleHintReceived = (hint: SwapHint | null) => {
     if (!hint) {
-      console.log('No hint received');
       return;
     }
-    
-    console.log('Received hint:', hint);
     
     // Clear any existing selections
     deselectAll();
@@ -994,22 +941,15 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete, currentHint
     const hintPos1 = hint.position1;
     const hintPos2 = hint.position2;
     
-    console.log('Hint positions:', hintPos1, hintPos2);
-    
     // Choose one position randomly
     const randomPos = Math.random() < 0.5 ? hintPos1 : hintPos2;
-    console.log('Randomly selected hint position:', randomPos);
     
     // Verify position coordinates are within grid bounds
     if (randomPos.row >= 0 && randomPos.row < grid.length &&
         randomPos.col >= 0 && randomPos.col < grid[0].length) {
       
-      // Debug info - what letter is at this position?
-      console.log(`Hint position: (${randomPos.row},${randomPos.col}) - Letter: ${grid[randomPos.row][randomPos.col].letter}`);
-      
       // Set new hint position
       setHintPositions([randomPos]);
-      console.log('Set hint position:', [randomPos]);
     } else {
       console.error('Hint position out of bounds:',
                    randomPos,
@@ -1020,8 +960,6 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete, currentHint
   // Update grid when hint positions change
   useEffect(() => {
     if (hintPositions.length > 0) {
-      console.log('Applying hint highlights to positions:', hintPositions);
-      
       setGrid(prevGrid => {
         const newGrid = prevGrid.map((row, rowIndex) => 
           row.map((cell, colIndex) => {
@@ -1040,13 +978,11 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete, currentHint
           })
         );
         
-        console.log('Updated grid with hint highlights');
         return newGrid;
       });
       
       // Clear hint after animation completes (2 seconds)
       const timeout = setTimeout(() => {
-        console.log('Clearing hint highlights after animation completes');
         clearHintHighlights();
       }, 2000);
       

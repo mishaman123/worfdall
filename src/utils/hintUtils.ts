@@ -48,8 +48,6 @@ function findAllWordsInGrid(grid: string[][], validWords: string[] = []): {
   const words: { word: string, positions: Position[], isHorizontal: boolean }[] = [];
   const validWordsUpper = validWords.map(word => word.toUpperCase());
   
-  console.log("Finding all words in grid of size", gridSize);
-  
   // Helper function to check a continuous letter sequence for valid words
   const checkSequenceForWords = (sequence: string, positions: Position[], isHorizontal: boolean) => {
     // Add the whole sequence if it's at least 3 letters
@@ -59,7 +57,6 @@ function findAllWordsInGrid(grid: string[][], validWords: string[] = []): {
         positions: [...positions],
         isHorizontal
       });
-      console.log(`Found ${isHorizontal ? 'horizontal' : 'vertical'} sequence: "${sequence}"`);
     }
     
     // Also check for valid words that might be substrings
@@ -73,8 +70,6 @@ function findAllWordsInGrid(grid: string[][], validWords: string[] = []): {
         if (startIndex !== -1) {
           // Found a valid word within the sequence
           const wordPositions = positions.slice(startIndex, startIndex + validWord.length);
-          
-          console.log(`Found valid word "${validWord}" within ${isHorizontal ? 'horizontal' : 'vertical'} sequence "${sequence}"`);
           
           words.push({
             word: validWord,
@@ -137,8 +132,6 @@ function findAllWordsInGrid(grid: string[][], validWords: string[] = []): {
   }
   
   // Look for continuous sequences of letters both horizontal and vertical
-  console.log(`Found ${words.length} words/sequences in total: ${words.map(w => w.word).join(', ')}`);
-  
   return words;
 }
 
@@ -176,8 +169,6 @@ function findValidWordsInCurrentGrid(grid: string[][], validWords: string[]): st
     .filter(({ word }) => validWordsUpper.includes(word.toUpperCase()))
     .map(({ word }) => word.toUpperCase());
   
-  console.log(`Found ${foundValidWords.length} valid words in current grid: ${foundValidWords.join(', ')}`);
-  
   return foundValidWords;
 }
 
@@ -195,8 +186,6 @@ function checkSwapCreatesValidWords(
     return [];
   }
   
-  console.log(`Checking swap between (${pos1.row},${pos1.col}): "${grid[pos1.row][pos1.col]}" and (${pos2.row},${pos2.col}): "${grid[pos2.row][pos2.col]}"`);
-  
   // Create a test grid with swapped letters
   const testGrid = JSON.parse(JSON.stringify(grid));
   const letter1 = testGrid[pos1.row][pos1.col];
@@ -206,11 +195,8 @@ function checkSwapCreatesValidWords(
   testGrid[pos1.row][pos1.col] = letter2;
   testGrid[pos2.row][pos2.col] = letter1;
   
-  console.log(`After swap: (${pos1.row},${pos1.col}): "${testGrid[pos1.row][pos1.col]}" and (${pos2.row},${pos2.col}): "${testGrid[pos2.row][pos2.col]}"`);
-  
   // Find all potential words after the swap, including checking for valid words as substrings
   const allWords = findAllWordsInGrid(testGrid, validWords);
-  console.log(`Found ${allWords.length} possible words after swap`);
   
   const wordsFound: string[] = [];
   
@@ -229,18 +215,10 @@ function checkSwapCreatesValidWords(
       validWord.toUpperCase() === wordText
     );
     
-    console.log(`Checking word "${wordText}" - pos1 in word: ${pos1InWord}, pos2 in word: ${pos2InWord}, is valid word: ${isValidWord}`);
-    
     // If either of the swapped positions is part of this word and it's a valid word
     if ((pos1InWord || pos2InWord) && isValidWord) {
-      console.log(`✓ Adding valid word: "${wordText}"`);
       wordsFound.push(wordText);
     }
-  }
-  
-  console.log(`Total valid words created by swap: ${wordsFound.length}`);
-  if (wordsFound.length > 0) {
-    console.log(`Words created: ${wordsFound.join(', ')}`);
   }
   
   return wordsFound;
@@ -253,13 +231,11 @@ function findAdjacentLetterPairs(
 ): { pos1: Position, pos2: Position, words: string[] }[] {
   // Guard against empty grid
   if (grid.length === 0 || grid[0].length === 0) {
-    console.log("Empty grid, can't find adjacent letter pairs");
     return [];
   }
   
   const gridRows = grid.length;
   const gridCols = grid[0].length;
-  console.log(`Finding adjacent letter pairs in grid of size ${gridRows}x${gridCols}`);
   
   const adjacentPairs: { pos1: Position, pos2: Position, words: string[] }[] = [];
   
@@ -290,8 +266,6 @@ function findAdjacentLetterPairs(
           // Skip if adjacent position is empty
           if (grid[adjRow][adjCol] === ' ' || grid[adjRow][adjCol] === '') continue;
           
-          console.log(`Checking adjacent positions: (${row},${col}): "${grid[row][col]}" and (${adjRow},${adjCol}): "${grid[adjRow][adjCol]}"`);
-          
           // Check if swapping these two letters creates valid words
           const wordsCreated = checkSwapCreatesValidWords(
             grid, 
@@ -318,10 +292,7 @@ function findAdjacentLetterPairs(
 
 // Debug function to print the grid contents
 function debugPrintGrid(grid: string[][]) {
-  console.log("Grid contents:");
-  for (let row = 0; row < grid.length; row++) {
-    console.log(grid[row].join(' '));
-  }
+  // Empty implementation - debug function with console logs removed
 }
 
 // Main function to generate a hint for a level using the current game grid
@@ -330,21 +301,11 @@ export function generateSwapHintFromCurrentGrid(
   validWords: string[],
   foundWords: string[]
 ): SwapHint | null {
-  console.log("Generating hint from current game grid");
-  
   // Extract the current state of the game grid as a string grid
   const currentGridState = extractCurrentGridState(currentGameGrid);
   
-  // Print grid for debugging
-  debugPrintGrid(currentGridState);
-  
   // Find all possible swaps that create valid words
   const adjacentPairs = findAdjacentLetterPairs(currentGridState, validWords);
-  
-  console.log(`Found ${adjacentPairs.length} adjacent pairs that create words:`);
-  adjacentPairs.forEach((pair, i) => {
-    console.log(`Pair ${i+1}: (${pair.pos1.row},${pair.pos1.col}) <-> (${pair.pos2.row},${pair.pos2.col}) creates words: ${pair.words.join(', ')}`);
-  });
   
   // Convert foundWords to uppercase for case-insensitive comparison
   const foundWordsUpper = foundWords.map(word => word.toUpperCase());
@@ -353,25 +314,15 @@ export function generateSwapHintFromCurrentGrid(
   const validHints = adjacentPairs.filter(pair => {
     // Get words that would be created by this swap that haven't been found yet
     const newWords = pair.words.filter(word => !foundWordsUpper.includes(word));
-    const result = newWords.length >= 2;
-    console.log(`Checking pair (${pair.pos1.row},${pair.pos1.col}) <-> (${pair.pos2.row},${pair.pos2.col})`);
-    console.log(`Words that would be created: ${pair.words.join(', ')}`);
-    console.log(`Words not found yet: ${newWords.join(', ')}`);
-    console.log(`Has at least 2 unfound words: ${result}`);
-    return result;
+    return newWords.length >= 2; // At least 2 new words should be created
   });
   
-  console.log(`After filtering, found ${validHints.length} valid hints`);
-  
   if (validHints.length === 0) {
-    console.log("No valid hints found - returning null");
     return null;
   }
   
   // Choose a random hint from the valid options
   const randomHint = validHints[Math.floor(Math.random() * validHints.length)];
-  console.log(`Selected hint: (${randomHint.pos1.row},${randomHint.pos1.col}) <-> (${randomHint.pos2.row},${randomHint.pos2.col})`);
-  console.log(`Words that will be created: ${randomHint.words.join(', ')}`);
   
   // Return the hint with only the unfound words
   return {
@@ -386,9 +337,6 @@ export function generateSwapHint(
   level: Level, 
   foundWords: string[]
 ): SwapHint | null {
-  console.log("WARNING: Using legacy generateSwapHint function with level data.");
-  console.log("This may not work correctly after letters have moved. Use generateSwapHintFromCurrentGrid instead.");
-  
   // Create a temporary grid from level data
   const tempGrid: string[][] = [];
   for (const row of level.grid) {
