@@ -242,8 +242,6 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
     col: number,
     newWordPositions: Array<{row: number, col: number}>
   ): string[][] => {
-    console.log(`[shiftLettersToAvoidOverlaps] Processing column ${col}`);
-    
     const newGrid = JSON.parse(JSON.stringify(grid));
     const gridSize = grid.length;
     
@@ -251,7 +249,6 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
     const newWordPositionsInColumn = newWordPositions.filter(p => p.col === col);
     
     if (newWordPositionsInColumn.length === 0) {
-      console.log(`[shiftLettersToAvoidOverlaps] No new word positions in column ${col}, no need to shift`);
       return newGrid;
     }
     
@@ -265,11 +262,8 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
     }
     
     if (existingLetters.length === 0) {
-      console.log(`[shiftLettersToAvoidOverlaps] No existing letters in column ${col}, no need to shift`);
       return newGrid;
     }
-    
-    console.log(`[shiftLettersToAvoidOverlaps] Found ${existingLetters.length} existing letters in column ${col}`);
     
     // Sort letters by row (top to bottom) to maintain their relative order
     existingLetters.sort((a, b) => a.row - b.row);
@@ -279,25 +273,18 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
       existingLetters.some(letter => letter.row === pos.row)
     );
     
-    console.log(`[shiftLettersToAvoidOverlaps] Found ${overlappingPositions.length} overlapping positions in column ${col}`);
-    
     // Find the lowest row that has an overlap
     const lowestOverlapRow = overlappingPositions.length > 0 
       ? Math.max(...overlappingPositions.map(pos => pos.row))
       : -1;
     
-    console.log(`[shiftLettersToAvoidOverlaps] Lowest overlap row: ${lowestOverlapRow}`);
-    
     // Separate letters into those that need to be shifted and those that don't
     const lettersToShift = existingLetters.filter(letter => letter.row <= lowestOverlapRow);
     const lettersToKeep = existingLetters.filter(letter => letter.row > lowestOverlapRow);
     
-    console.log(`[shiftLettersToAvoidOverlaps] Letters to shift: ${lettersToShift.length}, Letters to keep: ${lettersToKeep.length}`);
-    
     // Place letters that don't need to be shifted
     for (const {row, letter} of lettersToKeep) {
       newGrid[row][col] = letter;
-      console.log(`[shiftLettersToAvoidOverlaps] Kept letter '${letter}' at original row ${row} (below overlap)`);
     }
     
     // For letters that need to be shifted, we'll use a simpler approach
@@ -309,8 +296,6 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
         pos.row <= lettersToShift[lettersToShift.length - 1].row
       ).length;
       
-      console.log(`[shiftLettersToAvoidOverlaps] Total shifts needed: ${totalShifts}`);
-      
       // Place all letters to shift, maintaining their relative order
       // but shifting them all up by the same amount
       let currentRow = lettersToShift[0].row - totalShifts;
@@ -318,14 +303,12 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
       for (const {row, letter} of lettersToShift) {
         // If we've shifted beyond the top of the grid, we can't place this letter
         if (currentRow < 0) {
-          console.log(`[shiftLettersToAvoidOverlaps] WARNING - Letter '${letter}' from row ${row} would be shifted beyond the top of the grid`);
           currentRow++;
           continue;
         }
         
         // Place the letter
         newGrid[currentRow][col] = letter;
-        console.log(`[shiftLettersToAvoidOverlaps] Moved letter '${letter}' from row ${row} to row ${currentRow} (shifted by ${row - currentRow} rows)`);
         
         // Move to the next row
         currentRow++;
@@ -337,8 +320,6 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
 
   // Shift letters upward to resolve overlaps
   const shiftLettersUpward = (grid: string[][], affectedColumns: number[]): string[][] => {
-    console.log(`[shiftLettersUpward] Shifting letters in columns: ${affectedColumns.join(', ')}`);
-    
     const newGrid = JSON.parse(JSON.stringify(grid));
     const gridSize = grid.length;
     
@@ -353,11 +334,8 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
       }
       
       if (existingLetters.length === 0) {
-        console.log(`[shiftLettersUpward] Column ${col}: No existing letters, no need to shift`);
         continue;
       }
-      
-      console.log(`[shiftLettersUpward] Column ${col}: Found ${existingLetters.length} existing letters to potentially shift`);
       
       // Sort letters by row (top to bottom) to maintain their relative order
       existingLetters.sort((a, b) => a.row - b.row);
@@ -371,15 +349,12 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
       }
       
       if (overlappingPositions.length === 0) {
-        console.log(`[shiftLettersUpward] Column ${col}: No overlapping positions, placing letters back unchanged`);
         // Place letters back unchanged
         for (const {row, letter} of existingLetters) {
           newGrid[row][col] = letter;
         }
         continue;
       }
-      
-      console.log(`[shiftLettersUpward] Column ${col}: Found ${overlappingPositions.length} overlapping positions`);
       
       // Place letters back, shifting up one row at a time if needed
       for (let i = 0; i < existingLetters.length; i++) {
@@ -394,7 +369,6 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
         }
         
         newGrid[newRow][col] = letter;
-        console.log(`[shiftLettersUpward] Column ${col}: Moved letter '${letter}' from row ${row} to row ${newRow}`);
       }
     }
     
@@ -407,8 +381,6 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
     word1Positions: { row: number; col: number }[], 
     word2Positions: { row: number; col: number }[]
   ): { pos1: { row: number; col: number }; pos2: { row: number; col: number } }[] => {
-    console.log(`[findAdjacentPositions] Checking for adjacent positions between ${word1Positions.length} and ${word2Positions.length} positions`);
-    
     const adjacentPairs: { pos1: { row: number; col: number }; pos2: { row: number; col: number } }[] = [];
     
     for (const pos1 of word1Positions) {
@@ -419,13 +391,11 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
           (Math.abs(pos1.col - pos2.col) === 1 && pos1.row === pos2.row);
         
         if (isAdjacent) {
-          console.log(`[findAdjacentPositions] Found adjacent positions: (${pos1.row}, ${pos1.col}) and (${pos2.row}, ${pos2.col})`);
           adjacentPairs.push({ pos1, pos2 });
         }
       }
     }
     
-    console.log(`[findAdjacentPositions] Total adjacent pairs found: ${adjacentPairs.length}`);
     return adjacentPairs;
   };
 
@@ -439,7 +409,6 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
     
     // Check if the letters are the same
     if (newGrid[pos1.row][pos1.col] === newGrid[pos2.row][pos2.col]) {
-      console.log(`[swapLetters] WARNING: Attempted to swap identical letters '${newGrid[pos1.row][pos1.col]}' at positions (${pos1.row}, ${pos1.col}) and (${pos2.row}, ${pos2.col})`);
       return newGrid; // Return unchanged grid if letters are identical
     }
     
@@ -452,8 +421,6 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
 
   // Apply gravity to pull all letters down as far as possible
   const applyGravity = (grid: string[][]): string[][] => {
-    console.log(`[applyGravity] Applying gravity to pull letters down`);
-    
     const gridSize = grid.length;
     const newGrid = createEmptyGrid(gridSize);
     
@@ -470,8 +437,6 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
       
       // Skip if no letters in this column
       if (letters.length === 0) continue;
-      
-      console.log(`[applyGravity] Column ${col}: Found ${letters.length} letters to pull down`);
       
       // Place letters at the bottom of the grid
       for (let i = 0; i < letters.length; i++) {
@@ -502,14 +467,11 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
       swappedPositions?: {pos1: {row: number, col: number}, pos2: {row: number, col: number}};
     } 
   } => {
-    console.log(`[placePair] Placing pair: ${word1}, ${word2}, horizontal: ${isHorizontal}, firstPair: ${isFirstPair}`);
-    
     const gridSize = grid.length;
     
     // For the first pair, use the special placement logic
     if (isFirstPair) {
       let newGrid = JSON.parse(JSON.stringify(grid));
-      console.log(`[placePair] Using first pair placement logic`);
       
       if (isHorizontal) {
         // For horizontal orientation, place the longer word below the shorter word
@@ -526,8 +488,6 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
         const minRow = Math.floor(gridSize / 2); // Start from middle of grid
         const rowLonger = Math.floor(Math.random() * (maxRow - minRow + 1)) + minRow;
         const rowShorter = rowLonger - 1;
-        
-        console.log(`[placePair] Placing first pair horizontally: ${shorterWord} at (${rowShorter}, ${startColShorter}), ${longerWord} at (${rowLonger}, ${startColLonger})`);
         
         // Place words in grid
         for (let i = 0; i < shorterWord.length; i++) {
@@ -564,22 +524,16 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
         // Find adjacent positions
         const adjacentPairs = findAdjacentPositions(newGrid, word1Positions, word2Positions);
         
-        console.log(`[placePair] Found ${adjacentPairs.length} adjacent positions for first pair`);
-        
         if (adjacentPairs.length > 0) {
           // Filter out pairs with identical letters
           const validPairs = adjacentPairs.filter(pair => 
             newGrid[pair.pos1.row][pair.pos1.col] !== newGrid[pair.pos2.row][pair.pos2.col]
           );
           
-          console.log(`[placePair] Found ${validPairs.length} valid adjacent pairs (excluding identical letters)`);
-          
           if (validPairs.length > 0) {
             // Randomly select a valid adjacent pair to swap
             const randomPairIndex = Math.floor(Math.random() * validPairs.length);
             const { pos1, pos2 } = validPairs[randomPairIndex];
-            
-            console.log(`[placePair] Swapping letters at (${pos1.row}, ${pos1.col}) and (${pos2.row}, ${pos2.col})`);
             
             // Save the pre-gravity grid for debugging
             const preGravityGrid = JSON.parse(JSON.stringify(newGrid));
@@ -599,11 +553,9 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
               }
             };
           } else {
-            console.log(`[placePair] ERROR: No valid adjacent positions found (all have identical letters)`);
             return { success: false, newGrid: grid };
           }
         } else {
-          console.log(`[placePair] ERROR: No adjacent positions found for first pair`);
           return { success: false, newGrid: grid };
         }
       } else {
@@ -642,8 +594,6 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
         const row1 = Math.floor(Math.random() * (maxPossibleRow1 - minRow + 1)) + minRow;
         const row2 = Math.floor(Math.random() * (maxPossibleRow2 - minRow + 1)) + minRow;
         
-        console.log(`[placePair] Placing first pair vertically: ${word1} at (${row1}, ${col1}), ${word2} at (${row2}, ${col2})`);
-        
         // Place words in grid
         for (let i = 0; i < word1.length; i++) {
           newGrid[row1 + i][col1] = word1[i];
@@ -668,22 +618,16 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
         // Find adjacent positions
         const adjacentPairs = findAdjacentPositions(newGrid, word1Positions, word2Positions);
         
-        console.log(`[placePair] Found ${adjacentPairs.length} adjacent positions for first pair`);
-        
         if (adjacentPairs.length > 0) {
           // Filter out pairs with identical letters
           const validPairs = adjacentPairs.filter(pair => 
             newGrid[pair.pos1.row][pair.pos1.col] !== newGrid[pair.pos2.row][pair.pos2.col]
           );
           
-          console.log(`[placePair] Found ${validPairs.length} valid adjacent pairs (excluding identical letters)`);
-          
           if (validPairs.length > 0) {
             // Randomly select a valid adjacent pair to swap
             const randomPairIndex = Math.floor(Math.random() * validPairs.length);
             const { pos1, pos2 } = validPairs[randomPairIndex];
-            
-            console.log(`[placePair] Swapping letters at (${pos1.row}, ${pos1.col}) and (${pos2.row}, ${pos2.col})`);
             
             // Save the pre-gravity grid for debugging
             const preGravityGrid = JSON.parse(JSON.stringify(newGrid));
@@ -703,17 +647,14 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
               }
             };
           } else {
-            console.log(`[placePair] ERROR: No valid adjacent positions found (all have identical letters)`);
             return { success: false, newGrid: grid };
           }
         } else {
-          console.log(`[placePair] ERROR: No adjacent positions found for first pair`);
           return { success: false, newGrid: grid };
         }
       }
     } else {
       // For subsequent pairs, we need to find positions where the words overlap with existing letters
-      console.log(`[placePair] Using subsequent pair placement logic`);
       
       // Try random positions with a focus on creating overlaps
       const maxAttempts = 1000;
@@ -732,7 +673,6 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
       
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
         if (attempt % 100 === 0) {
-          console.log(`[placePair] Placement attempt ${attempt}/${maxAttempts}`);
         }
         
         // Generate random positions with bias away from dense columns
@@ -820,8 +760,6 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
         if (!isValidPosition(grid, word1, row1, col1, isHorizontal, false, currentPreviousPositions)) continue;
         if (!isValidPosition(grid, word2, row2, col2, isHorizontal, false, currentPreviousPositions)) continue;
         
-        console.log(`[placePair] Found valid positions - word1: ${word1} at (${row1}, ${col1}), word2: ${word2} at (${row2}, ${col2})`);
-        
         // Create a test grid for analysis
         let testGrid = JSON.parse(JSON.stringify(grid));
         
@@ -862,8 +800,6 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
           }
         }
         
-        console.log(`[placePair] Columns to shift: ${Array.from(columnsToShift.keys()).join(', ')}`);
-        
         // Save the grid state before shifting letters upward (for debugging)
         const preShiftGrid = JSON.parse(JSON.stringify(testGrid));
         
@@ -871,9 +807,6 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
         if (columnsToShift.size > 0) {
           // Shift letters upward in affected columns BEFORE placing the new words
           for (const [col, shiftCount] of Array.from(columnsToShift.entries())) {
-            console.log(`[placePair] Processing column ${col} for shifting`);
-            
-            // Use the new function to shift letters upward to avoid overlaps
             testGrid = shiftLettersToAvoidOverlaps(testGrid, col, newWordPositions);
           }
         }
@@ -930,19 +863,11 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
             const randomPairIndex = Math.floor(Math.random() * validPairs.length);
             const { pos1, pos2 } = validPairs[randomPairIndex];
             
-            console.log(`[placePair] Swapping letters at (${pos1.row}, ${pos1.col}) and (${pos2.row}, ${pos2.col})`);
-            
             // Save the pre-gravity grid for debugging
             const preGravityGrid = JSON.parse(JSON.stringify(testGrid));
             
             // Swap the letters
             testGrid = swapLetters(testGrid, pos1, pos2);
-            
-            // Debug: Print the grid after placing this pair
-            console.log(`[placePair] Grid after placing and swapping:`);
-            testGrid.forEach((row: string[], rowIndex: number) => {
-              console.log(`Row ${rowIndex}: ${row.join('')}`);
-            });
             
             return { 
               success: true, 
@@ -956,14 +881,13 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
               }
             };
           } else {
-            console.log(`[placePair] No valid adjacent pairs found (all have identical letters)`);
+            return { success: false, newGrid: grid };
           }
         } else {
-          console.log(`[placePair] No adjacent positions found between words`);
+          return { success: false, newGrid: grid };
         }
       }
       
-      console.log(`[placePair] ERROR: Failed to place pair after all attempts`);
       return { success: false, newGrid: grid };
     }
   };
@@ -980,8 +904,6 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
     setError(null);
     
     try {
-      console.log(`[generateLevel] Starting level generation with ${words.length} words`);
-      
       // Reset debug steps
       const newDebugSteps: Array<{
         description: string;
@@ -1011,14 +933,10 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
         wordPairs.push([shuffledWords[i], shuffledWords[i + 1]]);
       }
       
-      console.log(`[generateLevel] Created ${wordPairs.length} word pairs`);
-      
       // Place word pairs in the grid
       for (let pairIndex = 0; pairIndex < wordPairs.length; pairIndex++) {
         const [word1, word2] = wordPairs[pairIndex];
         const isFirstPair = pairIndex === 0;
-        
-        console.log(`[generateLevel] Placing pair ${pairIndex + 1}/${wordPairs.length}: ${word1}, ${word2}`);
         
         // Try both orientations
         let placementSuccess = false;
@@ -1035,7 +953,6 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
         // For subsequent pairs, use the 65/35 orientation approach (favoring horizontal)
         if (isFirstPair) {
           // Always try horizontal for the first pair
-          console.log(`[generateLevel] Trying horizontal orientation for first pair`);
           const { success: horizontalSuccess, newGrid: horizontalGrid, debugInfo: horizontalDebugInfo } = 
             placePair(grid, word1, word2, true, isFirstPair);
           
@@ -1046,61 +963,12 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
               isHorizontal: true,
               ...horizontalDebugInfo
             };
-            (`[generateLevel] Successfully placed first pair horizontally`);
           } else {
-            console.log(`[generateLevel] ERROR: Failed to place first pair horizontally`);
-          }
-        } else {
-          // For subsequent pairs, use the 65/35 orientation approach (favoring horizontal)
-          const tryHorizontalFirst = Math.random() < 0.65;
-          
-          if (tryHorizontalFirst) {
-            // Try horizontal first
-            console.log(`[generateLevel] Trying horizontal orientation for pair ${pairIndex + 1}`);
-            const { success: horizontalSuccess, newGrid: horizontalGrid, debugInfo: horizontalDebugInfo } = 
-              placePair(grid, word1, word2, true, isFirstPair, currentPreviousPositions);
+            // For subsequent pairs, use the 65/35 orientation approach (favoring horizontal)
+            const tryHorizontalFirst = Math.random() < 0.65;
             
-            if (horizontalSuccess && horizontalDebugInfo) {
-              grid = horizontalGrid;
-              placementSuccess = true;
-              placementDetails = {
-                isHorizontal: true,
-                ...horizontalDebugInfo
-              };
-              console.log(`[generateLevel] Successfully placed pair ${pairIndex + 1} horizontally`);
-            } else {
-              // Try vertical
-              console.log(`[generateLevel] Trying vertical orientation for pair ${pairIndex + 1}`);
-              const { success: verticalSuccess, newGrid: verticalGrid, debugInfo: verticalDebugInfo } = 
-                placePair(grid, word1, word2, false, isFirstPair, currentPreviousPositions);
-              
-              if (verticalSuccess && verticalDebugInfo) {
-                grid = verticalGrid;
-                placementSuccess = true;
-                placementDetails = {
-                  isHorizontal: false,
-                  ...verticalDebugInfo
-                };
-                console.log(`[generateLevel] Successfully placed pair ${pairIndex + 1} vertically`);
-              }
-            }
-          } else {
-            // Try vertical first
-            console.log(`[generateLevel] Trying vertical orientation for pair ${pairIndex + 1}`);
-            const { success: verticalSuccess, newGrid: verticalGrid, debugInfo: verticalDebugInfo } = 
-              placePair(grid, word1, word2, false, isFirstPair, currentPreviousPositions);
-            
-            if (verticalSuccess && verticalDebugInfo) {
-              grid = verticalGrid;
-              placementSuccess = true;
-              placementDetails = {
-                isHorizontal: false,
-                ...verticalDebugInfo
-              };
-              console.log(`[generateLevel] Successfully placed pair ${pairIndex + 1} vertically`);
-            } else {
-              // Try horizontal
-              console.log(`[generateLevel] Trying horizontal orientation for pair ${pairIndex + 1}`);
+            if (tryHorizontalFirst) {
+              // Try horizontal first
               const { success: horizontalSuccess, newGrid: horizontalGrid, debugInfo: horizontalDebugInfo } = 
                 placePair(grid, word1, word2, true, isFirstPair, currentPreviousPositions);
               
@@ -1111,14 +979,108 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
                   isHorizontal: true,
                   ...horizontalDebugInfo
                 };
-                console.log(`[generateLevel] Successfully placed pair ${pairIndex + 1} horizontally`);
+              } else {
+                // Try vertical
+                const { success: verticalSuccess, newGrid: verticalGrid, debugInfo: verticalDebugInfo } = 
+                  placePair(grid, word1, word2, false, isFirstPair, currentPreviousPositions);
+                
+                if (verticalSuccess && verticalDebugInfo) {
+                  grid = verticalGrid;
+                  placementSuccess = true;
+                  placementDetails = {
+                    isHorizontal: false,
+                    ...verticalDebugInfo
+                  };
+                }
+              }
+            } else {
+              // Try vertical first
+              const { success: verticalSuccess, newGrid: verticalGrid, debugInfo: verticalDebugInfo } = 
+                placePair(grid, word1, word2, false, isFirstPair, currentPreviousPositions);
+              
+              if (verticalSuccess && verticalDebugInfo) {
+                grid = verticalGrid;
+                placementSuccess = true;
+                placementDetails = {
+                  isHorizontal: false,
+                  ...verticalDebugInfo
+                };
+              } else {
+                // Try horizontal
+                const { success: horizontalSuccess, newGrid: horizontalGrid, debugInfo: horizontalDebugInfo } = 
+                  placePair(grid, word1, word2, true, isFirstPair, currentPreviousPositions);
+                
+                if (horizontalSuccess && horizontalDebugInfo) {
+                  grid = horizontalGrid;
+                  placementSuccess = true;
+                  placementDetails = {
+                    isHorizontal: true,
+                    ...horizontalDebugInfo
+                  };
+                }
+              }
+            }
+          }
+        } else {
+          // For subsequent pairs, use the 65/35 orientation approach (favoring horizontal)
+          const tryHorizontalFirst = Math.random() < 0.65;
+          
+          if (tryHorizontalFirst) {
+            // Try horizontal first
+            const { success: horizontalSuccess, newGrid: horizontalGrid, debugInfo: horizontalDebugInfo } = 
+              placePair(grid, word1, word2, true, isFirstPair, currentPreviousPositions);
+            
+            if (horizontalSuccess && horizontalDebugInfo) {
+              grid = horizontalGrid;
+              placementSuccess = true;
+              placementDetails = {
+                isHorizontal: true,
+                ...horizontalDebugInfo
+              };
+            } else {
+              // Try vertical
+              const { success: verticalSuccess, newGrid: verticalGrid, debugInfo: verticalDebugInfo } = 
+                placePair(grid, word1, word2, false, isFirstPair, currentPreviousPositions);
+              
+              if (verticalSuccess && verticalDebugInfo) {
+                grid = verticalGrid;
+                placementSuccess = true;
+                placementDetails = {
+                  isHorizontal: false,
+                  ...verticalDebugInfo
+                };
+              }
+            }
+          } else {
+            // Try vertical first
+            const { success: verticalSuccess, newGrid: verticalGrid, debugInfo: verticalDebugInfo } = 
+              placePair(grid, word1, word2, false, isFirstPair, currentPreviousPositions);
+            
+            if (verticalSuccess && verticalDebugInfo) {
+              grid = verticalGrid;
+              placementSuccess = true;
+              placementDetails = {
+                isHorizontal: false,
+                ...verticalDebugInfo
+              };
+            } else {
+              // Try horizontal
+              const { success: horizontalSuccess, newGrid: horizontalGrid, debugInfo: horizontalDebugInfo } = 
+                placePair(grid, word1, word2, true, isFirstPair, currentPreviousPositions);
+                
+              if (horizontalSuccess && horizontalDebugInfo) {
+                grid = horizontalGrid;
+                placementSuccess = true;
+                placementDetails = {
+                  isHorizontal: true,
+                  ...horizontalDebugInfo
+                };
               }
             }
           }
         }
         
         if (!placementSuccess) {
-          console.log(`[generateLevel] ERROR: Failed to place pair ${pairIndex + 1}`);
           setError(`Failed to place word pair: ${word1}, ${word2}`);
           setIsGenerating(false);
           return;
@@ -1212,7 +1174,6 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
         }
         
         // Apply gravity after each pair placement
-        console.log(`[generateLevel] Applying gravity after placing pair ${pairIndex + 1}`);
         const preGravityGrid = JSON.parse(JSON.stringify(grid));
         grid = applyGravity(grid);
         
@@ -1220,12 +1181,6 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
         newDebugSteps.push({
           description: `Pair ${pairIndex + 1}: After applying gravity`,
           grid: JSON.parse(JSON.stringify(grid))
-        });
-        
-        // Debug: Print the grid after placing this pair
-        console.log(`[generateLevel] Grid after placing pair ${pairIndex + 1} and applying gravity:`);
-        grid.forEach((row, rowIndex) => {
-          console.log(`Row ${rowIndex}: ${row.join('')}`);
         });
         
         // If placement was successful, update the previous word positions
@@ -1249,8 +1204,6 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
           // Update the current previous positions
           currentPreviousPositions = newPreviousPositions;
           setPreviousWordPositions(newPreviousPositions);
-          
-          console.log(`[generateLevel] Updated previous word positions, now tracking ${newPreviousPositions.size} positions`);
         }
       }
       
@@ -1264,8 +1217,6 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
         validWords: validWords
       };
       
-      console.log(`[generateLevel] Level generation complete with ${validWords.length} valid words`);
-      
       // Set debug steps
       setDebugSteps(newDebugSteps);
       setCurrentDebugStep(0);
@@ -1274,7 +1225,6 @@ const LevelCreator: React.FC<LevelCreatorProps> = ({ onClose }) => {
       // Set the generated level
       setGeneratedLevel(newLevel);
     } catch (error) {
-      
       setError("An error occurred while generating the level. Please try again.");
     } finally {
       setIsGenerating(false);
