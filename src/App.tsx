@@ -8,6 +8,8 @@ import LevelCreator from './components/LevelCreator';
 import { levels } from './data/levels';
 import { FEATURES } from './utils/devMode';
 import { motion, AnimatePresence } from 'framer-motion';
+import Hint from './components/Hint';
+import { SwapHint } from './utils/hintUtils';
 
 // Game states
 type GameState = 'start' | 'playing' | 'transition' | 'complete';
@@ -18,6 +20,10 @@ function App() {
   const [showLevelCreator, setShowLevelCreator] = useState(false);
   const [isGridAnimating, setIsGridAnimating] = useState(false);
   const prevLevelIndexRef = useRef(currentLevelIndex);
+  const [hintsRemaining, setHintsRemaining] = useState(3); // Hints state moved to App level
+  const [currentHint, setCurrentHint] = useState<SwapHint | null>(null);
+  const [foundWords, setFoundWords] = useState<string[]>([]);
+  const [currentGrid, setCurrentGrid] = useState<any[][] | null>(null);
   
   // Secret keypress to show level creator - only in dev mode
   useEffect(() => {
@@ -41,6 +47,11 @@ function App() {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [showLevelCreator]);
+  
+  // Reset found words when level changes
+  useEffect(() => {
+    setFoundWords([]);
+  }, [currentLevelIndex]);
   
   // Start the game
   const handleStartGame = () => {
@@ -100,12 +111,49 @@ function App() {
         console.log(`Switched to level ${levels[levelIndex].id}`);
       }
       
+      // Reset hints back to 3 when switching or restarting level
+      setHintsRemaining(3);
+      
       // After a short delay, fade in the new/restarted grid
       setTimeout(() => {
         setIsGridAnimating(false);
       }, 50);
     }, 300); // Match this with the exit animation duration
   };
+
+  // Handle using a hint
+  const handleUseHint = () => {
+    if (hintsRemaining > 0) {
+      setHintsRemaining(prev => prev - 1);
+    }
+  };
+
+  // Handle hint received from the Hint component
+  const handleHintReceived = (hint: SwapHint | null) => {
+    setCurrentHint(hint);
+  };
+  
+  // Update found words
+  const handleFoundWordsUpdate = (words: string[]) => {
+    setFoundWords(words);
+  };
+  
+  // Get the current game grid from the window object (set by GameGrid)
+  useEffect(() => {
+    const checkForGrid = () => {
+      if (typeof window !== 'undefined' && (window as any).currentGameGrid) {
+        setCurrentGrid((window as any).currentGameGrid);
+      }
+    };
+    
+    // Check initially
+    checkForGrid();
+    
+    // Set up interval to check periodically
+    const interval = setInterval(checkForGrid, 1000);
+    
+    return () => clearInterval(interval);
+  }, [gameState]);
   
   // Render content based on game state
   const renderContent = () => {
@@ -128,12 +176,19 @@ function App() {
       case 'playing':
         return (
           <>
-            <LevelIndicator 
-              currentLevel={levels[currentLevelIndex].id} 
-              totalLevels={levels.length} 
-              onSwitchLevel={FEATURES.LEVEL_SWITCHER ? handleSwitchLevel : undefined}
-              showLevelSwitcher={FEATURES.LEVEL_SWITCHER}
-            />
+            <div className="game-header">
+              <LevelIndicator 
+                currentLevel={levels[currentLevelIndex].id} 
+                totalLevels={levels.length} 
+                onSwitchLevel={FEATURES.LEVEL_SWITCHER ? handleSwitchLevel : undefined}
+                showLevelSwitcher={FEATURES.LEVEL_SWITCHER}
+              />
+              
+              <div className="level-theme-container">
+                <h2 className="level-theme">{levels[currentLevelIndex].theme}</h2>
+              </div>
+            </div>
+            
             <AnimatePresence mode="wait">
               {!isGridAnimating && (
                 <motion.div
@@ -143,13 +198,12 @@ function App() {
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <div className="level-theme-container">
-                    <h2 className="level-theme">{levels[currentLevelIndex].theme}</h2>
-                  </div>
                   <GameGrid 
                     key={`game-grid-${currentLevelIndex}`}
                     level={levels[currentLevelIndex]} 
-                    onLevelComplete={handleLevelComplete} 
+                    onLevelComplete={handleLevelComplete}
+                    currentHint={currentHint}
+                    onFoundWordsUpdate={handleFoundWordsUpdate}
                   />
                 </motion.div>
               )}
@@ -199,8 +253,27 @@ function App() {
       {!showLevelCreator && (
         <>
           <header className="App-header">
-            <h1>WORFDALL</h1>
-            <p>Sawp letetrs to from worsd.</p>
+            <div className="header-left">
+              {gameState === 'playing' && (
+                <Hint 
+                  level={levels[currentLevelIndex]}
+                  foundWords={foundWords}
+                  hintsRemaining={hintsRemaining}
+                  onUseHint={handleUseHint}
+                  onHintReceived={handleHintReceived}
+                  currentGrid={currentGrid}
+                />
+              )}
+            </div>
+            
+            <div className="header-center">
+              <h1>WORFDALL</h1>
+              <p>Sawp letetrs to from worsd.</p>
+            </div>
+            
+            <div className="header-right">
+              {/* This space intentionally left empty for balance */}
+            </div>
           </header>
           <main>
             {renderContent()}

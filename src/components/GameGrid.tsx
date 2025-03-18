@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './GameGrid.css';
 import { Level } from '../data/levels';
+import { SwapHint } from '../utils/hintUtils';
 
 // Define the cell type
 interface GridCell {
@@ -18,15 +19,18 @@ interface GridCell {
   singleWordFound?: boolean;
   fadingOut?: boolean;
   wasSwapped?: boolean;
+  hintHighlight?: boolean;
 }
 
 interface GameGridProps {
   level: Level;
   onLevelComplete: () => void;
+  currentHint: SwapHint | null;
+  onFoundWordsUpdate: (words: string[]) => void;
 }
 
 // Generate a grid from level data and trim empty rows and columns
-const generateGridFromLevel = (level: Level): GridCell[][] => {
+const generateGridFromLevel = (level: Level): { grid: GridCell[][], bounds: { minRow: number, maxRow: number, minCol: number, maxCol: number } } => {
   // First, create the full grid
   const fullGrid: GridCell[][] = [];
   for (let i = 0; i < level.grid.length; i++) {
@@ -67,7 +71,7 @@ const generateGridFromLevel = (level: Level): GridCell[][] => {
   // If no content found, return empty grid
   if (minRow > maxRow || minCol > maxCol) {
     console.log("No visible content found in grid");
-    return [[]];
+    return { grid: [[]], bounds: { minRow: 0, maxRow: 0, minCol: 0, maxCol: 0 } };
   }
   
   // Create the trimmed grid with only the content
@@ -85,7 +89,7 @@ const generateGridFromLevel = (level: Level): GridCell[][] => {
   console.log(`Trimmed grid from ${fullGrid.length}x${fullGrid[0].length} to ${trimmedGrid.length}x${trimmedGrid[0].length}`);
   console.log(`Content bounds: rows ${minRow}-${maxRow}, cols ${minCol}-${maxCol}`);
   
-  return trimmedGrid;
+  return { grid: trimmedGrid, bounds: { minRow, maxRow, minCol, maxCol } };
 };
 
 // Check if two positions are adjacent
@@ -134,8 +138,10 @@ const getOriginalCoordinates = (id: string): { row: number, col: number } => {
   return { row, col };
 };
 
-const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete }) => {
-  const [grid, setGrid] = useState<GridCell[][]>(generateGridFromLevel(level));
+const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete, currentHint, onFoundWordsUpdate }) => {
+  const gridData = generateGridFromLevel(level);
+  const [grid, setGrid] = useState<GridCell[][]>(gridData.grid);
+  const [gridBounds, setGridBounds] = useState(gridData.bounds);
   const [selectedCell, setSelectedCell] = useState<{ row: number, col: number } | null>(null);
   const [validWords, setValidWords] = useState<string[]>(() => {
     const words = level.validWords.map(word => word.toUpperCase());
@@ -144,20 +150,35 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete }) => {
   });
   const [foundWords, setFoundWords] = useState<string[]>([]);
   const [remainingLetters, setRemainingLetters] = useState<number>(0);
+  const [hintPositions, setHintPositions] = useState<{row: number, col: number}[]>([]);
+  const [hintTimeout, setHintTimeout] = useState<NodeJS.Timeout | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+
+  // Update parent component when found words change
+  useEffect(() => {
+    onFoundWordsUpdate(foundWords);
+  }, [foundWords, onFoundWordsUpdate]);
+
+  // Handle hint updates from parent
+  useEffect(() => {
+    if (currentHint) {
+      handleHintReceived(currentHint);
+    }
+  }, [currentHint]);
 
   // Initialize the grid and count visible letters when level changes
   useEffect(() => {
-    const newGrid = generateGridFromLevel(level);
-    setGrid(newGrid);
+    const newGridData = generateGridFromLevel(level);
+    setGrid(newGridData.grid);
+    setGridBounds(newGridData.bounds);
     setSelectedCell(null);
     setFoundWords([]);
     
     // Count visible letters for level completion check
     let visibleCount = 0;
-    for (let i = 0; i < newGrid.length; i++) {
-      for (let j = 0; j < newGrid[i].length; j++) {
-        if (newGrid[i][j].visible && !newGrid[i][j].isEmpty) {
+    for (let i = 0; i < newGridData.grid.length; i++) {
+      for (let j = 0; j < newGridData.grid[i].length; j++) {
+        if (newGridData.grid[i][j].visible && !newGridData.grid[i][j].isEmpty) {
           visibleCount++;
         }
       }
@@ -229,6 +250,9 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete }) => {
     const newGrid = JSON.parse(JSON.stringify(grid));
     for (let i = 0; i < newGrid.length; i++) {
       for (let j = 0; j < newGrid[i].length; j++) {
+        // Preserve hint highlights
+        const wasHinted = newGrid[i][j].hintHighlight;
+        
         newGrid[i][j].selected = false;
         newGrid[i][j].shaking = false;
         newGrid[i][j].invalidSwap = false;
@@ -236,6 +260,11 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete }) => {
         newGrid[i][j].singleWordFound = false;
         newGrid[i][j].fadingOut = false;
         newGrid[i][j].wasSwapped = false;
+        
+        // Restore hint highlight if it was previously set
+        if (wasHinted) {
+          newGrid[i][j].hintHighlight = true;
+        }
       }
     }
     setGrid(newGrid);
@@ -498,6 +527,9 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete }) => {
     col2: number, 
     wordPositions: { row: number, col: number }[]
   ) => {
+    // Clear any hint highlights since we're doing a swap
+    clearHintHighlights();
+    
     // Step 1: Fade selected cells from blue to green
     const fadeGrid = JSON.parse(JSON.stringify(grid));
     
@@ -924,62 +956,178 @@ const GameGrid: React.FC<GameGridProps> = ({ level, onLevelComplete }) => {
     return newGrid;
   };
 
+  // Clear any hint highlights
+  const clearHintHighlights = () => {
+    if (hintTimeout) {
+      clearTimeout(hintTimeout);
+      setHintTimeout(null);
+    }
+    
+    setGrid(prevGrid => {
+      return prevGrid.map(row => 
+        row.map(cell => ({
+          ...cell,
+          hintHighlight: false
+        }))
+      );
+    });
+    
+    setHintPositions([]);
+  };
+  
+  // Handle hint received from the parent
+  const handleHintReceived = (hint: SwapHint | null) => {
+    if (!hint) {
+      console.log('No hint received');
+      return;
+    }
+    
+    console.log('Received hint:', hint);
+    
+    // Clear any existing selections
+    deselectAll();
+    
+    // Clear any existing hint highlights
+    clearHintHighlights();
+    
+    // No need to translate positions - they're already in the current grid coordinates
+    const hintPos1 = hint.position1;
+    const hintPos2 = hint.position2;
+    
+    console.log('Hint positions:', hintPos1, hintPos2);
+    
+    // Choose one position randomly
+    const randomPos = Math.random() < 0.5 ? hintPos1 : hintPos2;
+    console.log('Randomly selected hint position:', randomPos);
+    
+    // Verify position coordinates are within grid bounds
+    if (randomPos.row >= 0 && randomPos.row < grid.length &&
+        randomPos.col >= 0 && randomPos.col < grid[0].length) {
+      
+      // Debug info - what letter is at this position?
+      console.log(`Hint position: (${randomPos.row},${randomPos.col}) - Letter: ${grid[randomPos.row][randomPos.col].letter}`);
+      
+      // Set new hint position
+      setHintPositions([randomPos]);
+      console.log('Set hint position:', [randomPos]);
+    } else {
+      console.error('Hint position out of bounds:',
+                   randomPos,
+                   'Grid size:', grid.length, 'x', grid[0].length);
+    }
+  };
+
+  // Update grid when hint positions change
+  useEffect(() => {
+    if (hintPositions.length > 0) {
+      console.log('Applying hint highlights to positions:', hintPositions);
+      
+      setGrid(prevGrid => {
+        const newGrid = prevGrid.map((row, rowIndex) => 
+          row.map((cell, colIndex) => {
+            const isHinted = hintPositions.some(pos => 
+              pos.row === rowIndex && pos.col === colIndex
+            );
+            
+            // Only create a new cell object if we're changing something
+            if (isHinted !== cell.hintHighlight) {
+              return {
+                ...cell,
+                hintHighlight: isHinted
+              };
+            }
+            return cell;
+          })
+        );
+        
+        console.log('Updated grid with hint highlights');
+        return newGrid;
+      });
+      
+      // Clear hint after animation completes (2 seconds)
+      const timeout = setTimeout(() => {
+        console.log('Clearing hint highlights after animation completes');
+        clearHintHighlights();
+      }, 2000);
+      
+      setHintTimeout(timeout);
+      
+      // Clean up timeout on unmount
+      return () => {
+        if (timeout) {
+          clearTimeout(timeout);
+        }
+      };
+    }
+  }, [hintPositions]);
+
+  // Send the current grid to parent when updated
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Make current grid available to the App component
+      (window as any).currentGameGrid = grid;
+    }
+  }, [grid]);
+
   return (
-    <div className="game-grid" ref={gridRef}>
-      <AnimatePresence>
-        {grid.map((row, rowIndex) => (
-          <div key={rowIndex} className="grid-row">
-            {row.map((cell, colIndex) => (
-              <div 
-                key={`position-${rowIndex}-${colIndex}`} 
-                className={`grid-cell-position ${cell.isEmpty ? 'empty-cell' : ''}`}
-              >
-                <AnimatePresence>
-                  {cell.visible && !cell.isEmpty && (
-                    <motion.div
-                      className={`grid-cell 
-                        ${cell.selected ? 'selected' : ''} 
-                        ${cell.selectedToSwap ? 'selected-to-swap' : ''}
-                        ${cell.shaking ? 'shaking' : ''} 
-                        ${cell.validWord ? 'valid-word' : ''} 
-                        ${cell.singleWordFound ? 'single-word-found' : ''}
-                        ${cell.fadingOut ? 'fading-out' : ''}
-                        ${cell.invalidSwap ? 'invalid-swap' : ''}`}
-                      initial={{ opacity: 1 }}
-                      exit={{ 
-                        opacity: 0,
-                        transition: { duration: 0.3 } 
-                      }}
-                      animate={
-                        cell.swapping 
-                          ? { scale: [1, 0, 0, 1] } 
-                          : {}
-                      }
-                      onClick={() => handleLetterClick(rowIndex, colIndex)}
-                      layout="position"
-                      transition={
-                        cell.swapping 
-                        ? { 
-                            duration: 0.8,
-                            ease: "easeInOut",
-                            times: [0, 0.4, 0.6, 1]  // Spend more time at scale 0 to make the swap more visible
-                          } 
-                        : { 
-                            type: "spring", 
-                            stiffness: 300, 
-                            damping: 30 
-                          }
-                      }
-                    >
-                      {cell.letter}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            ))}
-          </div>
-        ))}
-      </AnimatePresence>
+    <div className="game-container">
+      <div className="game-grid" ref={gridRef}>
+        <AnimatePresence>
+          {grid.map((row, rowIndex) => (
+            <div key={rowIndex} className="grid-row">
+              {row.map((cell, colIndex) => (
+                <div 
+                  key={`position-${rowIndex}-${colIndex}`} 
+                  className={`grid-cell-position ${cell.isEmpty ? 'empty-cell' : ''}`}
+                >
+                  <AnimatePresence>
+                    {cell.visible && !cell.isEmpty && (
+                      <motion.div
+                        className={`grid-cell 
+                          ${cell.selected ? 'selected' : ''} 
+                          ${cell.selectedToSwap ? 'selected-to-swap' : ''}
+                          ${cell.shaking ? 'shaking' : ''} 
+                          ${cell.validWord ? 'valid-word' : ''} 
+                          ${cell.singleWordFound ? 'single-word-found' : ''}
+                          ${cell.fadingOut ? 'fading-out' : ''}
+                          ${cell.invalidSwap ? 'invalid-swap' : ''}
+                          ${cell.hintHighlight ? 'cell-hint' : ''}`}
+                        initial={{ opacity: 1 }}
+                        exit={{ 
+                          opacity: 0,
+                          transition: { duration: 0.3 } 
+                        }}
+                        animate={
+                          cell.swapping 
+                            ? { scale: [1, 0, 0, 1] } 
+                            : {}
+                        }
+                        onClick={() => handleLetterClick(rowIndex, colIndex)}
+                        layout="position"
+                        transition={
+                          cell.swapping 
+                          ? { 
+                              duration: 0.8,
+                              ease: "easeInOut",
+                              times: [0, 0.4, 0.6, 1]  // Spend more time at scale 0 to make the swap more visible
+                            } 
+                          : { 
+                              type: "spring", 
+                              stiffness: 300, 
+                              damping: 30 
+                            }
+                        }
+                      >
+                        {cell.letter}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ))}
+            </div>
+          ))}
+        </AnimatePresence>
+      </div>
     </div>
   );
 };

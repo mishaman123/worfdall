@@ -23,16 +23,38 @@
   padding: 20px;
   color: white;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.App-header h1 {
+.header-left, .header-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.header-left {
+  justify-content: flex-start;
+}
+
+.header-right {
+  justify-content: flex-end;
+}
+
+.header-center {
+  flex: 2;
+  text-align: center;
+}
+
+.header-center h1 {
   margin: 0;
   font-size: 2.5rem;
   font-weight: 700;
   letter-spacing: 1px;
 }
 
-.App-header p {
+.header-center p {
   margin: 10px 0 0;
   font-size: 1rem;
   opacity: 0.9;
@@ -249,4 +271,13 @@ main {
     font-size: 1.2rem;
     padding: 8px 15px;
   }
+}
+
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 800px;
+  margin-bottom: 20px;
 }
